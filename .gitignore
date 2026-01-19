@@ -1,0 +1,12 @@
+# macOS
+.DS_Store
+
+# IntelliJ IDEA
+.idea/
+*.iml
+
+# Maven / Java
+target/
+
+# Logs
+*.log
