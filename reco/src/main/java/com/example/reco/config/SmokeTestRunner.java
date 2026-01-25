@@ -29,7 +29,7 @@ public class SmokeTestRunner implements CommandLineRunner {
     public void run(String... args) {
         User u = users.save(new User("user@test.com", "hash"));
         Item i = items.save(new Item("Film random", ItemType.MOVIE, "{\"genre\":\"Action\"}"));
-        ratings.save(new Rating(u, i, 5));
+        ratings.save(new Rating(u, i, (short) 5));
 
         System.out.println("Users: " + users.count());
         System.out.println("Items: " + items.count());

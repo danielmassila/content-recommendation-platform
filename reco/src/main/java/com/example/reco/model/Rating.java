@@ -30,7 +30,7 @@ public class Rating {
     private Item item;
 
     @Column(nullable = false)
-    private Integer rating;
+    private Short rating;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -38,7 +38,7 @@ public class Rating {
     protected Rating() {
     }
 
-    public Rating(User user, Item item, Integer rating) {
+    public Rating(User user, Item item, Short rating) {
         if (rating < 1 || rating > 5) {
             throw new IllegalArgumentException("The rating must be between 1 and 5");
         }
@@ -60,7 +60,7 @@ public class Rating {
         return item;
     }
 
-    public Integer getRating() {
+    public Short getRating() {
         return rating;
     }
 
