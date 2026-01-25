@@ -18,7 +18,7 @@ CREATE TABLE ratings (
 	user_id BIGINT NOT NULL,
 	item_id BIGINT NOT NULL,
 	rating SMALLINT NOT NULL CHECK (rating BETWEEN 1 AND 5),
-	created_at TIMESTAMP NOT NULL DEFAULT NOW()
+	created_at TIMESTAMP NOT NULL DEFAULT NOW(),
 
 	CONSTRAINT fk_ratings_users
 		FOREIGN KEY (user_id)
