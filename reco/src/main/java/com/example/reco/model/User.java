@@ -25,7 +25,7 @@ public class User {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
-    protected User() {
+    public User() {
     }
 
     public User(String email, String passwordHash) {
@@ -48,5 +48,9 @@ public class User {
 
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
     }
 }
