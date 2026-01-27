@@ -15,6 +15,9 @@ import java.util.List;
 @Transactional
 public class UserServiceImpl implements UserService {
 
+    private static final int DEFAULT_LIMIT = 50;
+    private static final int MAX_LIMIT = 50;
+
     private UserRepository userRepository;
 
     public UserServiceImpl(UserRepository userRepository) {
@@ -31,7 +34,8 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(readOnly = true)
     public List<UserResponse> getAllUsers(int limit) {
-        int myLimit = Math.min(Math.max(limit, 1), 100);
+        int myLimit = (limit <= 0) ? DEFAULT_LIMIT : limit;
+        myLimit = Math.min(myLimit, MAX_LIMIT);
         List<UserResponse> userList = userRepository
                                               .findAll(PageRequest.of(0, myLimit))
                                               .stream()
