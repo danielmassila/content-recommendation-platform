@@ -49,7 +49,7 @@ class ItemServiceImplTest {
         assertNotNull(response);
         assertEquals(1L, response.getId());
         assertEquals("Titanic", response.getTitle());
-        assertEquals(ItemType.MOVIE, response.getItemType());
+        assertEquals(ItemType.MOVIE, response.getType());
         assertEquals("{\"producer\":\"James Cameron\"}", response.getMetadata());
 
         verify(itemRepository).findById(1L);
@@ -99,12 +99,12 @@ class ItemServiceImplTest {
 
         assertEquals(1L, response.get(0).getId());
         assertEquals("Item 1", response.get(0).getTitle());
-        assertEquals(ItemType.MOVIE, response.get(0).getItemType());
+        assertEquals(ItemType.MOVIE, response.get(0).getType());
         assertEquals("{\"a\":1}", response.get(0).getMetadata());
 
         assertEquals(2L, response.get(1).getId());
         assertEquals("Item 2", response.get(1).getTitle());
-        assertEquals(ItemType.MOVIE, response.get(1).getItemType());
+        assertEquals(ItemType.MOVIE, response.get(1).getType());
         assertEquals("{\"b\":2}", response.get(1).getMetadata());
 
         verify(itemRepository).findAll(any(Pageable.class));
@@ -160,7 +160,7 @@ class ItemServiceImplTest {
 
         assertNotNull(response);
         assertEquals("Dune", response.getTitle());
-        assertEquals(ItemType.MOVIE, response.getItemType());
+        assertEquals(ItemType.MOVIE, response.getType());
         assertEquals("{\"year\":\"2021\"}", response.getMetadata());
     }
 }

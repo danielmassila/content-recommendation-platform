@@ -24,7 +24,7 @@ public class ItemResponse {
         return title;
     }
 
-    public ItemType getItemType() {
+    public ItemType getType() {
         return itemType;
     }
 

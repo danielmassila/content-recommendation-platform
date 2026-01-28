@@ -7,6 +7,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
@@ -34,6 +35,11 @@ public class Item {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = Instant.now();
+    }
+
     public Item() {
     }
 
@@ -41,7 +47,6 @@ public class Item {
         this.title = title;
         this.type = type;
         this.metadata = metadata;
-        this.createdAt = Instant.now();
     }
 
     public Long getId() {

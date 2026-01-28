@@ -33,7 +33,7 @@ public class CreateItemRequest {
         this.metadata = metadata;
     }
 
-    public ItemType getItemType() {
+    public ItemType getType() {
         return type;
     }
 

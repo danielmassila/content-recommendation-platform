@@ -28,7 +28,7 @@ public class ItemServiceImpl implements ItemService {
     public ItemResponse createItem(CreateItemRequest createItemRequest) {
         Item item = new Item();
         item.setTitle(createItemRequest.getTitle());
-        item.setType(createItemRequest.getItemType());
+        item.setType(createItemRequest.getType());
         item.setMetadata(createItemRequest.getMetadata());
         Item saved = itemRepository.save(item);
         return toResponse(saved);
