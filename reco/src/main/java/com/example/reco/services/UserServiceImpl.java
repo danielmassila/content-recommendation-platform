@@ -1,5 +1,6 @@
 package com.example.reco.services;
 
+import com.example.reco.common.exceptions.ConflictException;
 import com.example.reco.common.exceptions.NotFoundException;
 import com.example.reco.controllers.dto.CreateUserRequest;
 import com.example.reco.controllers.dto.UserResponse;
@@ -46,8 +47,12 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserResponse createUser(CreateUserRequest request) {
+        String email = request.getEmail();
+        if (userRepository.existsByEmail(email)) {
+            throw new ConflictException("Email already taken: " + email);
+        }
         User user = new User();
-        user.setEmail(request.getEmail());
+        user.setEmail(email);
         // TO DO : add a password that we directly hash
         User saved = userRepository.save(user);
         return toResponse(saved);
