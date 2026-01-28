@@ -34,7 +34,7 @@ public class Item {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
-    protected Item() {
+    public Item() {
     }
 
     public Item(String title, ItemType type, String metadata) {
@@ -64,4 +64,19 @@ public class Item {
         return createdAt;
     }
 
+    public void setTitle(String title) {
+        this.title = title;
+    }
+
+    public void setType(ItemType type) {
+        this.type = type;
+    }
+
+    public void setMetadata(String metadata) {
+        this.metadata = metadata;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
 }
