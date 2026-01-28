@@ -2,6 +2,8 @@ package com.services;
 
 
 import com.example.reco.common.exceptions.NotFoundException;
+import com.example.reco.controllers.dto.CreateUserRequest;
+import com.example.reco.controllers.dto.UserResponse;
 import com.example.reco.model.User;
 import com.example.reco.repositories.UserRepository;
 import com.example.reco.services.UserServiceImpl;
@@ -133,6 +135,28 @@ public class UserServiceImplTest {
         assertEquals(0, pageableUsed.getPageNumber());
         assertEquals(50, pageableUsed.getPageSize()); // default limit
 
+    }
+
+    @Test
+    void shouldCreateNewUser() {
+
+        CreateUserRequest userRequest = new CreateUserRequest();
+        userRequest.setEmail("user1@test");
+
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        UserResponse response = userService.createUser(userRequest);
+
+        // checking what happened in the repository
+        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(userCaptor.capture());
+
+        User savedUser = userCaptor.getValue();
+        assertEquals("user1@test", savedUser.getEmail());
+
+        // checking the answer
+        assertNotNull(response);
+        assertEquals("user1@test", response.getEmail());
     }
 
 }
