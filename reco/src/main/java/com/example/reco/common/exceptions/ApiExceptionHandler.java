@@ -23,4 +23,12 @@ public class ApiExceptionHandler {
         problemDetail.setDetail(ex.getMessage());
         return problemDetail;
     }
+
+    @ExceptionHandler(BadRequestException.class)
+    public ProblemDetail handleBadRequestException(BadRequestException ex) {
+        ProblemDetail problemDetail = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
+        problemDetail.setTitle("Bad request");
+        problemDetail.setDetail(ex.getMessage());
+        return problemDetail;
+    }
 }

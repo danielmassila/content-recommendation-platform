@@ -8,6 +8,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 
@@ -35,7 +36,12 @@ public class Rating {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
-    protected Rating() {
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = Instant.now();
+    }
+
+    public Rating() {
     }
 
     public Rating(User user, Item item, Short rating) {
@@ -45,7 +51,6 @@ public class Rating {
         this.user = user;
         this.item = item;
         this.rating = rating;
-        this.createdAt = Instant.now();
     }
 
     public Long getId() {
@@ -66,5 +71,13 @@ public class Rating {
 
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    public void setRating(Short rating) {
+        this.rating = rating;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
     }
 }
