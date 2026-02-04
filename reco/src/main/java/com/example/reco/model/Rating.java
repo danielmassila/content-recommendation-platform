@@ -12,6 +12,7 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 
 @Entity
@@ -31,7 +32,7 @@ public class Rating {
     private Item item;
 
     @Column(nullable = false)
-    private Short rating;
+    private BigDecimal rating;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -41,11 +42,14 @@ public class Rating {
         this.createdAt = Instant.now();
     }
 
+    private static final BigDecimal MIN_RATING = BigDecimal.ONE;
+    private static final BigDecimal MAX_RATING = BigDecimal.valueOf(5);
+
     public Rating() {
     }
 
-    public Rating(User user, Item item, Short rating) {
-        if (rating < 1 || rating > 5) {
+    public Rating(User user, Item item, BigDecimal rating) {
+        if (rating.compareTo(MIN_RATING) < 0 || rating.compareTo(MAX_RATING) > 0) {
             throw new IllegalArgumentException("The rating must be between 1 and 5");
         }
         this.user = user;
@@ -65,7 +69,7 @@ public class Rating {
         return item;
     }
 
-    public Short getRating() {
+    public BigDecimal getRating() {
         return rating;
     }
 
@@ -73,7 +77,7 @@ public class Rating {
         return createdAt;
     }
 
-    public void setRating(Short rating) {
+    public void setRating(BigDecimal rating) {
         this.rating = rating;
     }
 

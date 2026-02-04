@@ -21,6 +21,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
@@ -67,10 +68,10 @@ public class RatingServiceImplTest {
         Item item = new Item();
         item.setId(2L);
 
-        Rating rating1 = new Rating(user, item, (short) 4);
+        Rating rating1 = new Rating(user, item, BigDecimal.valueOf(4));
         rating1.setId(10L);
 
-        Rating rating2 = new Rating(user, item, (short) 5);
+        Rating rating2 = new Rating(user, item, BigDecimal.valueOf(5));
         rating2.setId(11L);
 
         when(ratingRepository.findAll(any(Pageable.class)))
@@ -111,7 +112,7 @@ public class RatingServiceImplTest {
         // arrange step
         Long unexistingItemId = 5L;
         Long userId = 3L;
-        Short grade = 4;
+        BigDecimal grade = BigDecimal.valueOf(4);
 
         when(itemRepository.findById(unexistingItemId)).thenReturn(Optional.empty());
 
@@ -127,7 +128,7 @@ public class RatingServiceImplTest {
     void shouldThrowNotFoundWhenUserDoesNotExist() {
         Long unexistingUserId = 9L;
         Long itemId = 7L;
-        Short grade = 2;
+        BigDecimal grade = BigDecimal.valueOf(2);
 
         Item existingItem = new Item();
         existingItem.setId(itemId);
@@ -144,7 +145,7 @@ public class RatingServiceImplTest {
 
     @Test
     void shouldThrowBadRequestWhenInvalidGradeRating() {
-        Short invalidGrade = 100;
+        BigDecimal invalidGrade = BigDecimal.valueOf(100);
         Long userId = 10L;
         Long itemId = 4L;
 
@@ -160,7 +161,7 @@ public class RatingServiceImplTest {
     void shouldHandleValidGradeRating() {
         Long userId = 5L;
         Long itemId = 7L;
-        Short grade = 4;
+        BigDecimal grade = BigDecimal.valueOf(4);
 
         Item existingItem = new Item();
         existingItem.setId(itemId);
@@ -195,7 +196,7 @@ public class RatingServiceImplTest {
     void shouldThrowConflictWhenUserAlreadyRatedItem() {
         Long userId = 1L;
         Long itemId = 1L;
-        Short grade = 4;
+        BigDecimal grade = BigDecimal.valueOf(4);
 
         Item item = new Item();
         item.setId(itemId);
@@ -224,7 +225,7 @@ public class RatingServiceImplTest {
 
     @Test
     void shouldThrowBadRequestWhenUpdatingWithInvalidGrade() {
-        Short invalidNewGrade = 100;
+        BigDecimal invalidNewGrade = BigDecimal.valueOf(100);
         Long rateId = 10L;
         Rating existingRate = new Rating();
         existingRate.setId(rateId);
@@ -238,7 +239,7 @@ public class RatingServiceImplTest {
 
     @Test
     void shouldThrowNotFoundWhenUpdatingUnexistingRateGrade() {
-        Short newGrade = 5;
+        BigDecimal newGrade = BigDecimal.valueOf(5);
         Long unexistingRateId = 10L;
 
         when(ratingRepository.findById(unexistingRateId)).thenReturn(Optional.empty());

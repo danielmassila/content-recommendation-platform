@@ -1,23 +1,20 @@
 package com.example.reco.controllers.dto;
 
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
+
+import java.math.BigDecimal;
 
 public class CreateRatingRequest {
 
     @NotNull(message = "userId is required")
     private Long userId;
 
-    @NotNull(message = "grade is required")
-    @Min(value = 1, message = "grade must be between 1 and 5")
-    @Max(value = 5, message = "grade must be between 1 and 5")
-    private Short grade;
+    private BigDecimal grade;
 
     public CreateRatingRequest() {
     }
 
-    public CreateRatingRequest(Long userId, Short grade) {
+    public CreateRatingRequest(Long userId, BigDecimal grade) {
         this.userId = userId;
         this.grade = grade;
     }
@@ -26,7 +23,7 @@ public class CreateRatingRequest {
         return userId;
     }
 
-    public Short getGrade() {
+    public BigDecimal getGrade() {
         return grade;
     }
 
@@ -34,7 +31,7 @@ public class CreateRatingRequest {
         this.userId = userId;
     }
 
-    public void setGrade(Short grade) {
+    public void setGrade(BigDecimal grade) {
         this.grade = grade;
     }
 }

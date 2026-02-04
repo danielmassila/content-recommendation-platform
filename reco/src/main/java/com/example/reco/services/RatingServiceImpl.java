@@ -16,6 +16,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Service
@@ -24,6 +25,8 @@ public class RatingServiceImpl implements RatingService {
 
     private static final int DEFAULT_LIMIT = 50;
     private static final int MAX_LIMIT = 50;
+    private static final BigDecimal MIN_GRADE = BigDecimal.ONE;
+    private static final BigDecimal MAX_GRADE = BigDecimal.valueOf(5);
 
     private final RatingRepository ratingRepository;
     private final ItemRepository itemRepository;
@@ -33,6 +36,14 @@ public class RatingServiceImpl implements RatingService {
         this.ratingRepository = ratingRepository;
         this.itemRepository = itemRepository;
         this.userRepository = userRepository;
+    }
+
+    private static void validateGrade(BigDecimal grade) {
+        if (grade == null
+                    || grade.compareTo(MIN_GRADE) < 0
+                    || grade.compareTo(MAX_GRADE) > 0) {
+            throw new BadRequestException("Invalid grade attributed: " + grade);
+        }
     }
 
     @Override
@@ -74,36 +85,31 @@ public class RatingServiceImpl implements RatingService {
     }
 
     @Override
-    public RatingResponse rateItem(Long itemId, Long userId, Short grade) {
-        if (grade == null || grade < 1 || grade > 5) {
-            throw new BadRequestException("Invalid grade attributed: " + grade);
-        }
-        Item item = itemRepository.findById(itemId).orElseThrow(() -> new NotFoundException("Item with id " + itemId + " not found"));
-        User user = userRepository.findById(userId).orElseThrow(() -> new NotFoundException("User with id " + userId + " not found"));
-        Rating rating = new Rating(user, item, grade);
+    public RatingResponse rateItem(Long itemId, Long userId, BigDecimal grade) {
+        validateGrade(grade);
+
+        Item item = itemRepository.findById(itemId)
+                            .orElseThrow(() -> new NotFoundException("Item with id " + itemId + " not found"));
+        User user = userRepository.findById(userId)
+                            .orElseThrow(() -> new NotFoundException("User with id " + userId + " not found"));
 
         ratingRepository.findByUserIdAndItemId(userId, itemId).ifPresent(existing -> {
             throw new ConflictException("User already rated this item");
         });
 
-        try {
-            Rating saved = ratingRepository.save(rating);
-            return toResponse(saved);
-        } catch (DataIntegrityViolationException ex) {
-            throw new ConflictException("User already rated this item. Use updateRating to change it.");
-        }
-        
+        Rating saved = ratingRepository.save(new Rating(user, item, grade));
+        return toResponse(saved);
     }
 
     @Override
-    public RatingResponse updateRating(Long id, Short newGrade) {
-        if (newGrade == null || newGrade < 1 || newGrade > 5) {
-            throw new BadRequestException("Invalid grade attributed: " + newGrade);
-        }
-        Rating rating = ratingRepository.findById(id).orElseThrow(() -> new NotFoundException(("Rating with id " + id + " not found")));
+    public RatingResponse updateRating(Long id, BigDecimal newGrade) {
+        validateGrade(newGrade);
+
+        Rating rating = ratingRepository.findById(id)
+                                .orElseThrow(() -> new NotFoundException("Rating with id " + id + " not found"));
+
         rating.setRating(newGrade);
-        var saved = ratingRepository.save(rating);
-        return toResponse(saved);
+        return toResponse(ratingRepository.save(rating));
     }
 
     private RatingResponse toResponse(Rating rating) {

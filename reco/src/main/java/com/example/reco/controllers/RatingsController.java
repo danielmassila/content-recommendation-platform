@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
@@ -54,7 +55,7 @@ public class RatingsController {
     }
 
     @PutMapping("/ratings/{id}")
-    public RatingResponse updateRating(@PathVariable Long id, @RequestParam Short newGrade) {
+    public RatingResponse updateRating(@PathVariable Long id, @RequestParam BigDecimal newGrade) {
         return ratingService.updateRating(id, newGrade);
     }
 
