@@ -7,7 +7,7 @@ CREATE TABLE recommendations (
 	algo_version VARCHAR(255) NOT NULL,
     reason JSONB NULL,
     run_id UUID NULL,
-	generated_at TIMESTAMP NOT NULL DEFAULT NOW()
+	generated_at TIMESTAMP NOT NULL DEFAULT NOW(),
 
 	CONSTRAINT fk_reco_users
 		FOREIGN KEY (user_id)
@@ -24,4 +24,4 @@ CREATE TABLE recommendations (
 );
 
 CREATE INDEX IF NOT EXISTS idx_fk_reco_user_rank ON recommendations(user_id, rank);
-CREATE INDEX IF NOT EXISTS idx_fk_reco_items ON ratings(user_id, score DESC);
+CREATE INDEX IF NOT EXISTS idx_fk_reco_items ON recommendations(user_id, score DESC);
