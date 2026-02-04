@@ -39,4 +39,10 @@ public class RecommendationsController {
         return recommendationService.getUserRecommendations(userId, limit, includeReason, algo);
     }
 
+    @PostMapping("/users/{userId}/recommendations/recompute")
+    public ResponseEntity<Void> recomputeUserRecommendations(@PathVariable Long userId) {
+        recommendationService.recomputeRecommendationsForUser(userId);
+        return ResponseEntity.accepted().build();
+    }
+
 }
