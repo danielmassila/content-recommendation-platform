@@ -54,4 +54,10 @@ public class RecommendationsController {
         return ResponseEntity.noContent().build();
     }
 
+    @PostMapping("/admin/recommendations/recompute")
+    public ResponseEntity<Void> recomputeAllRecommendations() {
+        recommendationService.recomputeAllRecommendations();
+        return ResponseEntity.accepted().build();
+    }
+
 }

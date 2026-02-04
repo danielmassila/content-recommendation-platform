@@ -14,4 +14,6 @@ public interface RecommendationService {
     void recomputeRecommendationsForUser(Long userId);
 
     void dismissItemForUser(Long userId, Long itemId);
+
+    void recomputeAllRecommendations();
 }
