@@ -10,6 +10,8 @@ import com.example.reco.repositories.UserRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
+
 @Component
 public class SmokeTestRunner implements CommandLineRunner {
 
@@ -29,8 +31,7 @@ public class SmokeTestRunner implements CommandLineRunner {
     public void run(String... args) {
         User u = users.save(new User("user@test.com", "hash"));
         Item i = items.save(new Item("Film random", ItemType.MOVIE, "{\"genre\":\"Action\"}"));
-        ratings.save(new Rating(u, i, (short) 5));
-
+        ratings.save(new Rating(u, i, BigDecimal.valueOf(5)));
         System.out.println("Users: " + users.count());
         System.out.println("Items: " + items.count());
         System.out.println("Ratings: " + ratings.count());
