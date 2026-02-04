@@ -45,4 +45,13 @@ public class RecommendationsController {
         return ResponseEntity.accepted().build();
     }
 
+    @PostMapping("/users/{userId}/recommendations/{itemId}/dismiss")
+    public ResponseEntity<Void> dismissRecommendation(
+            @PathVariable Long userId,
+            @PathVariable Long itemId
+    ) {
+        recommendationService.dismissItemForUser(userId, itemId);
+        return ResponseEntity.noContent().build();
+    }
+
 }
