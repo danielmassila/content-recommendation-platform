@@ -117,4 +117,36 @@ public class Recommendation {
     public UUID getRunId() {
         return runId;
     }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
+
+    public void setItem(Item item) {
+        this.item = item;
+    }
+
+    public void setRank(Integer rank) {
+        this.rank = rank;
+    }
+
+    public void setScore(Double score) {
+        this.score = score;
+    }
+
+    public void setAlgoVersion(String algoVersion) {
+        this.algoVersion = algoVersion;
+    }
+
+    public void setRunId(UUID runId) {
+        this.runId = runId;
+    }
+
+    public void setGeneratedAt(Instant generatedAt) {
+        this.generatedAt = generatedAt;
+    }
 }
