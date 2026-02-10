@@ -73,3 +73,20 @@ def build_users_by_item(ratings: List[Tuple[int, int, float]]) -> Dict[int, Dict
             users_by_items[item_id] = {}
         users_by_items[item_id][user_id] = float(rating)
     return users_by_items
+def compute_user_cosine_similarity(user_u_id: int, user_v_id: int, ratings_by_user: Dict[int, Dict[int, float]]) -> float:
+    ratings_u = ratings_by_user.get(user_u_id, {})
+    ratings_v = ratings_by_user.get(user_v_id, {})
+    movies_seen_by_both = set(ratings_u.keys()) & set(ratings_v.keys())
+
+    if not ratings_u or not ratings_v or not movies_seen_by_both:
+        return 0.0
+
+    num = sum(ratings_u[mv] * ratings_v[mv] for mv in movies_seen_by_both)
+    den_u = math.sqrt(sum(ratings_u[mv] ** 2 for mv in movies_seen_by_both))
+    den_v = math.sqrt(sum(ratings_v[mv] ** 2 for mv in movies_seen_by_both))
+    den = den_u * den_v
+
+    if den == 0.0:
+        return 0.0
+
+    return num / den
