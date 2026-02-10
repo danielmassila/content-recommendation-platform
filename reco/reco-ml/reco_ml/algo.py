@@ -57,3 +57,19 @@ def compute_popularity_from_stats(stats_by_items: Dict[int, tuple[int, float]], 
 
 def ranked_items(scores: Dict[int, float]) -> list[tuple[int, float]]:
     return sorted(scores.items(), key=lambda x: x[1], reverse=True)
+def build_ratings_by_user(ratings: List[Tuple[int, int, float]]) -> Dict[int, Dict[int, float]]:
+    user_ratings: Dict[int, Dict[int, float]] = {}
+    for user_id, item_id, rating in ratings:
+        if user_id not in user_ratings:
+            user_ratings[user_id] = {}
+        user_ratings[user_id][item_id] = float(rating)
+    return user_ratings
+
+
+def build_users_by_item(ratings: List[Tuple[int, int, float]]) -> Dict[int, Dict[int, float]]:
+    users_by_items: Dict[int, Dict[int, float]] = {}
+    for user_id, item_id, rating in ratings:
+        if item_id not in users_by_items:
+            users_by_items[item_id] = {}
+        users_by_items[item_id][user_id] = float(rating)
+    return users_by_items
