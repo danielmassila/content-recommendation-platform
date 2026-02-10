@@ -47,11 +47,16 @@ public class RecommendationsController {
 
     @PostMapping("/users/{userId}/recommendations/{itemId}/dismiss")
     public ResponseEntity<Void> dismissRecommendation(
+    public List<RecommendationResponse> recomputeUserRecommendations(
             @PathVariable Long userId,
             @PathVariable Long itemId
+            @RequestParam(name = "limit", defaultValue = "20") @Min(1) @Max(100) int limit,
+            @RequestParam(name = "includeReason", defaultValue = "false") boolean includeReason,
+            @RequestParam(name = "algo", required = false) String algo
     ) {
         recommendationService.dismissItemForUser(userId, itemId);
         return ResponseEntity.noContent().build();
+        return recommendationService.recomputeRecommendationsForUser(userId, limit, includeReason, algo);
     }
 
     @PostMapping("/admin/recommendations/recompute")
