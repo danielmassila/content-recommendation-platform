@@ -24,7 +24,7 @@ public class RecommendationServiceImpl implements RecommendationService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<RecommendationResponse> getAllRecommendations(int limit) {
+    public List<RecommendationResponse> getAllRecommendations(int limit, boolean includeReason) {
         int myLimit = (limit <= 0) ? DEFAULT_LIMIT : limit;
         myLimit = Math.min(myLimit, MAX_LIMIT);
         List<RecommendationResponse> recommendationList = recommendationRepository.findAll(PageRequest.of(0, myLimit))

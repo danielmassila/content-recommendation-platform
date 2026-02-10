@@ -25,8 +25,11 @@ public class RecommendationsController {
     }
 
     @GetMapping("/admin/recommendations")
-    public List<RecommendationResponse> getAllRecommendations(@RequestParam(defaultValue = "10") int limit) {
-        return recommendationService.getAllRecommendations(limit);
+    public List<RecommendationResponse> getAllRecommendations(
+            @RequestParam(defaultValue = "10") int limit,
+            @RequestParam(name = "includeReason", defaultValue = "false") boolean includeReason
+    ) {
+        return recommendationService.getAllRecommendations(limit, includeReason);
     }
 
     @GetMapping("/users/{userId}/recommendations")

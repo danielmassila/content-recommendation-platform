@@ -6,7 +6,7 @@ import java.util.List;
 
 public interface RecommendationService {
 
-    List<RecommendationResponse> getAllRecommendations(int limit);
+    List<RecommendationResponse> getAllRecommendations(int limit, boolean includeReason);
 
     List<RecommendationResponse> getUserRecommendations(Long userId, int limit, boolean includeReason, String algo);
 

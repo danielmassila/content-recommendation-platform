@@ -76,7 +76,7 @@ public class RecommendationServiceImplTest {
     void shouldReturnEmptyWhenEmptyRecommendationTable() {
         when(recommendationRepository.findAll(any(Pageable.class))).thenReturn(Page.empty());
 
-        List<RecommendationResponse> response = recommendationService.getAllRecommendations(50);
+        List<RecommendationResponse> response = recommendationService.getAllRecommendations(50, false);
 
         assertNotNull(response);
         assertEquals(0, response.size());
@@ -91,7 +91,7 @@ public class RecommendationServiceImplTest {
 
         when(recommendationRepository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of(r1, r2)));
 
-        List<RecommendationResponse> response = recommendationService.getAllRecommendations(10);
+        List<RecommendationResponse> response = recommendationService.getAllRecommendations(10, false);
 
         assertNotNull(response);
         assertEquals(2, response.size());
@@ -111,7 +111,7 @@ public class RecommendationServiceImplTest {
     void shouldCapAllRecommendationsLimitWhenLimitTooHigh() {
         when(recommendationRepository.findAll(any(Pageable.class))).thenReturn(Page.empty());
 
-        recommendationService.getAllRecommendations(99999);
+        recommendationService.getAllRecommendations(99999, false);
 
         ArgumentCaptor<Pageable> captor = ArgumentCaptor.forClass(Pageable.class);
         verify(recommendationRepository).findAll(captor.capture());
