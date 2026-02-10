@@ -23,7 +23,6 @@ services:
       context: ./reco-ml
     volumes:
       - ./reco-ml:/jobs
-      - ./datasets:/datasets:ro
       - ./datasets:/datasets
     depends_on:
       - db
@@ -43,11 +42,11 @@ services:
     depends_on:
       - db
     environment:
-      DB_HOST: db
-      DB_PORT: 5432
-      DB_NAME: ${POSTGRES_DB}
-      DB_USER: ${POSTGRES_USER}
-      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_HOST: ${DB_HOST:-db}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_NAME: ${DB_NAME:-reco_db}
+      DB_USER: ${DB_USER:-reco_user}
+      DB_PASSWORD: ${DB_PASSWORD:-reco_pass}
       PYTHONPATH: /jobs
     command: [ "pytest", "-q" ]
 
