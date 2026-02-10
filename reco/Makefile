@@ -16,6 +16,7 @@ help:
 	@echo "Python jobs (Docker):"
 	@echo "  py-build         Build reco-job image"
 	@echo "  py-smoke         Run smoke checks on dataset/pipeline"
+	@echo "  py-download      Download dataset into ./datasets (not committed)"
 	@echo "  py-import        Import dataset into DB"
 	@echo "  py-reco          Compute recommendations and write them into DB"
 	@echo "  py-all           Build + smoke + import + reco"
@@ -60,13 +61,16 @@ py-build:
 py-smoke:
 	docker compose run --rm reco-job python -m jobs.smoke_data
 
+py-download:
+	docker compose run --rm reco-job python -m jobs.download_dataset
+
 py-import:
 	docker compose run --rm reco-job python -m jobs.import_dataset
 
 py-reco:
 	docker compose run --rm reco-job python -m jobs.run_reco
 
-py-all: py-build py-smoke py-import py-reco
+py-all: py-build py-download py-smoke py-import py-reco
 
 
 # Full demo: rebuild DB, migrate schema, import data, compute recos, show counts, run API

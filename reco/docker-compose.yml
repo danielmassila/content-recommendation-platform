@@ -24,6 +24,7 @@ services:
     volumes:
       - ./reco-ml:/jobs
       - ./datasets:/datasets:ro
+      - ./datasets:/datasets
     depends_on:
       - db
     environment:
