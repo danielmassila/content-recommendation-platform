@@ -177,3 +177,67 @@ def recommend_for_user(user_id: int, n: int, k: int, item_list: List[int], ratin
     mixed_scores = mix_scores(cf_scores, pop_scores, alpha)
 
     return top_n(mixed_scores, n)
+
+def recompute_all_recommendations(
+    conn,
+    n_per_user: int = 20,
+    k_neighbors: int = 50,
+    algo_version: str = "hybrid_usercf_pop",
+) -> None:
+    """
+    Batch job:
+    - fetch users/items/ratings + stats for popularity
+    - build caches (ratings_by_user, users_by_item, user_rating_count)
+    - compute profile_maturity_threshold once
+    - compute popularity scores once
+    - compute top-N recs for each user
+    - write to recommendations table
+    """
+    # Fetch and compute data from database
+    user_ids = repositories.fetch_all_users(conn)
+    item_ids = repositories.fetch_all_items(conn)
+    ratings = repositories.fetch_all_ratings(conn)
+    stats_by_items = repositories.get_stats_by_item(conn)
+    global_rating = repositories.get_global_rating(conn)
+
+    # Build caches
+    ratings_by_user = build_ratings_by_user(ratings)
+    users_by_item = build_users_by_item(ratings)
+    user_rating_count = {uid: len(ratings_by_user.get(uid, {})) for uid in user_ids}
+
+    # Threshold and popularity
+    profile_maturity_threshold = compute_profile_maturity_threshold(ratings)
+    pop_scores_all = compute_popularity_from_stats(stats_by_items, global_rating)
+
+    # Recommend for each user
+    rows: List[RecommendationRow] = []
+
+    for user_id in user_ids:
+        recs = recommend_for_user(
+            user_id=user_id,
+            n=n_per_user,
+            k=k_neighbors,
+            item_list=item_ids,
+            ratings_by_user=ratings_by_user,
+            users_by_item=users_by_item,
+            pop_scores_all=pop_scores_all,
+            user_rating_count=user_rating_count,
+            profile_maturity_threshold=profile_maturity_threshold,
+        )
+
+        # Convert to DB rows with ranks
+        rank = 1
+        for item_id, score in recs:
+            rows.append(
+                RecommendationRow(
+                    user_id=int(user_id),
+                    item_id=int(item_id),
+                    score=float(score),
+                    algo_version=algo_version,
+                    rank=int(rank),
+                )
+            )
+            rank += 1
+
+    # Write into the database
+    repositories.write_recommendations(conn, rows)
