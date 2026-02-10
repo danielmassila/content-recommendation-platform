@@ -33,22 +33,22 @@ services:
       DB_USER: ${POSTGRES_USER}
       DB_PASSWORD: ${POSTGRES_PASSWORD}
 
-    reco-tests:
-      build:
-        context: ./reco-ml
-      volumes:
-        - ./reco-ml:/jobs
-      working_dir: /jobs
-      depends_on:
-        - db
-      environment:
-        DB_HOST: db
-        DB_PORT: 5432
-        DB_NAME: ${POSTGRES_DB}
-        DB_USER: ${POSTGRES_USER}
-        DB_PASSWORD: ${POSTGRES_PASSWORD}
-        PYTHONPATH: /jobs
-      command: ["pytest", "-q"]
+  reco-tests:
+    build:
+      context: ./reco-ml
+    volumes:
+      - ./reco-ml:/jobs
+    working_dir: /jobs
+    depends_on:
+      - db
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB}
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      PYTHONPATH: /jobs
+    command: [ "pytest", "-q" ]
 
 volumes:
   reco_data:
