@@ -157,3 +157,23 @@ def top_n(scores: Dict[int, float], n: int) -> List[tuple[int, float]]:
     if n <= 0 or not scores:
         return []
     return sorted(scores.items(), key=lambda kv: kv[1], reverse=True)[:n]
+def recommend_for_user(user_id: int, n: int, k: int, item_list: List[int], ratings_by_user: Dict[int, Dict[int, float]], users_by_item: Dict[int, Dict[int, float]], pop_scores_all: Dict[int, float], user_rating_count: Dict[int, int], profile_maturity_threshold: int):
+    items_seen_by_user = ratings_by_user.get(user_id, {}).keys()
+    items_to_discover = set(item_list) - set(items_seen_by_user)
+    n_ratings = user_rating_count.get(user_id, 0)
+
+    cf_scores: Dict[int, float] = {}
+    pop_scores: Dict[int, float] = {}
+
+    for i_id in items_to_discover:
+        pop_scores[i_id] = pop_scores_all.get(i_id, 0.0)
+        if n_ratings > 0:
+            cf_scores[i_id] = score_cf(user_id, i_id, ratings_by_user, users_by_item, k)
+        else:
+            cf_scores[i_id] = 0.0
+
+    alpha = compute_alpha(n_ratings, profile_maturity_threshold)
+    cf_scores = normalize_scores(cf_scores)
+    mixed_scores = mix_scores(cf_scores, pop_scores, alpha)
+
+    return top_n(mixed_scores, n)
