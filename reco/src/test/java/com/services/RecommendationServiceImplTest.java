@@ -203,3 +203,57 @@ public class RecommendationServiceImplTest {
         Pageable used = captor.getValue();
         assertEquals(50, used.getPageSize()); // MAX_LIMIT
     }
+
+    // recomputeRecommendationsForUser
+
+    @Test
+    void shouldRunJobTAndReturnUserRecommendations() {
+        Long userId = 1L;
+
+        // spy to stub the method that would normally run Docker
+        RecommendationServiceImpl spyService = Mockito.spy(recommendationService);
+
+        // we stub the job runner so that we don't actually execute Docker during unit tests
+        doNothing().when(spyService).runRecommendationJob("all");
+
+        Recommendation r1 = buildRecommendation(10L, userId, 100L, 0.91, 1, "v1", UUID.randomUUID(), null);
+        Recommendation r2 = buildRecommendation(11L, userId, 101L, 0.80, 2, "v1", UUID.randomUUID(), null);
+
+        when(recommendationRepository.findByUserId(eq(userId), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(r1, r2)));
+
+        // Act : trigger recompute for this user
+        List<RecommendationResponse> res =
+                spyService.recomputeRecommendationsForUser(userId, 10, true, "whatever");
+
+        // Assert that the repository fetched recommendations
+        verify(spyService, times(1)).runRecommendationJob("all");
+        verify(recommendationRepository, times(1)).findByUserId(eq(userId), any(Pageable.class));
+
+        assertNotNull(res);
+        assertEquals(2, res.size());
+        assertEquals(10L, res.get(0).getId());
+        assertEquals(userId, res.get(0).getUserId());
+        assertEquals(100L, res.get(0).getItemId());
+    }
+
+
+    // recomputeAllRecommendations
+
+    @Test
+    void shouldRecomputeAllRecommendations() {
+        // Create a spy so we can stub the Docker job runner
+        RecommendationServiceImpl spyService = spy(recommendationService);
+
+        doNothing().when(spyService).runRecommendationJob("all");
+
+        spyService.recomputeAllRecommendations();
+
+        verify(spyService, times(1)).runRecommendationJob("all");
+
+        verifyNoInteractions(recommendationRepository);
+    }
+
+
+    // getAllRecommendationsOK getUserRecommendations recomputeRecommendationsForUser recomputeAllRecommendations dismissItemForUser
+}
