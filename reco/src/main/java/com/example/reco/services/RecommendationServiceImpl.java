@@ -58,3 +58,16 @@ public class RecommendationServiceImpl implements RecommendationService {
                        .toList();
 
     }
+    private RecommendationResponse toResponse(Recommendation recommendation, boolean includeReason) {
+        return new RecommendationResponse(
+                recommendation.getId(),
+                recommendation.getUser().getId(),
+                recommendation.getItem().getId(),
+                recommendation.getScore(),
+                recommendation.getRank(),
+                recommendation.getAlgoVersion(),
+                recommendation.getRunId(),
+                includeReason ? recommendation.getReason() : null,
+                recommendation.getGeneratedAt()
+        );
+    }
