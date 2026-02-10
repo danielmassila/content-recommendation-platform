@@ -36,3 +36,24 @@ def write_recommendations(conn, rows: Iterable[RecommendationRow]) -> None:
             """,
             infos,
             )
+def get_stats_by_item(conn) -> dict[int, tuple[int, float]]:
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT item_id, COUNT(*) AS v, AVG(rating) AS r
+            FROM ratings
+            GROUP BY item_id;
+            """
+        )
+        return { row[0]: (row[1], float(row[2])) for row in cur.fetchall() }
+
+def get_global_rating(conn) -> float:
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            SELECT AVG(rating)
+            FROM ratings;
+            """
+        )
+        row = cur.fetchone()
+        return float(row[0])
