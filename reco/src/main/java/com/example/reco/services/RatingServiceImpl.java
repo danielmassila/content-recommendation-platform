@@ -10,7 +10,6 @@ import com.example.reco.model.User;
 import com.example.reco.repositories.ItemRepository;
 import com.example.reco.repositories.RatingRepository;
 import com.example.reco.repositories.UserRepository;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;

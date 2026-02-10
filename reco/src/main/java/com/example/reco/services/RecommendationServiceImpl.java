@@ -58,6 +58,57 @@ public class RecommendationServiceImpl implements RecommendationService {
                        .toList();
 
     }
+
+    @Override
+    public List<RecommendationResponse> recomputeRecommendationsForUser(Long userId, int limit, boolean includeReason, String algo) {
+        // TO DO : for V2, change so that we compute only for one user
+        // instead of recomputing all recommendations
+        runRecommendationJob("all");
+        return getUserRecommendations(userId, limit, includeReason, algo);
+
+    }
+    @Override
+    public void recomputeAllRecommendations() {
+        runRecommendationJob("all");
+    }
+
+    @Override
+    public void runRecommendationJob(String mode) {
+        try {
+            ProcessBuilder pb = createProcessBuilder(mode);
+            pb.redirectErrorStream(true);
+
+            Process p = startProcess(pb);
+            int exit = p.waitFor();
+
+            if (exit != 0) {
+                throw new RuntimeException("Reco job failed with exit code " + exit);
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Reco job interrupted", e);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to run reco job", e);
+        }
+    }
+
+    // testables hooks
+    protected ProcessBuilder createProcessBuilder(String mode) {
+        return new ProcessBuilder(
+                "docker", "compose", "run", "--rm",
+                "reco-ml",
+                "python", "-m", "jobs.run_reco",
+                "--mode", mode,
+                "--n", "20",
+                "--k", "50",
+                "--algo", "hybrid_usercf_pop"
+        );
+    }
+
+    protected Process startProcess(ProcessBuilder pb) throws Exception {
+        return pb.start();
+    }
+
     private RecommendationResponse toResponse(Recommendation recommendation, boolean includeReason) {
         return new RecommendationResponse(
                 recommendation.getId(),
@@ -71,3 +122,5 @@ public class RecommendationServiceImpl implements RecommendationService {
                 recommendation.getGeneratedAt()
         );
     }
+
+}
