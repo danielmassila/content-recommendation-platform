@@ -9,9 +9,14 @@ from reco_ml.algo import (
 
 def test_recommend_for_user_excludes_seen_items_and_returns_sorted():
     ratings = [
-        (1, 10, 5.0), (1, 20, 1.0),
-        (2, 10, 5.0), (2, 20, 1.0), (2, 30, 4.0),
-        (3, 10, 5.0), (3, 20, 0.0), (3, 30, 2.0),
+        (1, 10, 5.0),
+        (1, 20, 1.0),
+        (2, 10, 5.0),
+        (2, 20, 1.0),
+        (2, 30, 4.0),
+        (3, 10, 5.0),
+        (3, 20, 0.0),
+        (3, 30, 2.0),
     ]
     item_list = [10, 20, 30, 40]
 
@@ -21,7 +26,7 @@ def test_recommend_for_user_excludes_seen_items_and_returns_sorted():
     user_rating_count = {1: 2, 2: 3, 3: 3}
     threshold = compute_profile_maturity_threshold(ratings)
 
-    # mocked popularity 
+    # mocked popularity
     pop_scores_all = {10: 0.1, 20: 0.2, 30: 0.9, 40: 0.8}
 
     recs = recommend_for_user(

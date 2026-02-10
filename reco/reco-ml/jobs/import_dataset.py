@@ -6,7 +6,7 @@ import pandas as pd
 from reco_ml.db import get_db_connection
 
 
-DATA_DIR = Path("/datasets/raw_data")          # <- ton volume: ./datasets -> /datasets
+DATA_DIR = Path("/datasets/raw_data")  # <- ton volume: ./datasets -> /datasets
 MOVIES_CSV = DATA_DIR / "movies.csv"
 RATINGS_CSV = DATA_DIR / "ratings.csv"
 
@@ -27,10 +27,14 @@ def main():
     ratings_cols = {"userId", "movieId", "rating"}
 
     if not movies_cols.issubset(movies_df.columns):
-        raise RuntimeError(f"movies.csv must contain {movies_cols} (got {set(movies_df.columns)})")
+        raise RuntimeError(
+            f"movies.csv must contain {movies_cols} (got {set(movies_df.columns)})"
+        )
 
     if not ratings_cols.issubset(ratings_df.columns):
-        raise RuntimeError(f"ratings.csv must contain {ratings_cols} (got {set(ratings_df.columns)})")
+        raise RuntimeError(
+            f"ratings.csv must contain {ratings_cols} (got {set(ratings_df.columns)})"
+        )
 
     # Generating synthetic users and filling the tables
     user_ids = sorted(ratings_df["userId"].unique().tolist())
@@ -38,10 +42,12 @@ def main():
     with get_db_connection() as conn:
         with conn.cursor() as cur:
             # Reset V1 tables
-            cur.execute("""
+            cur.execute(
+                """
                 TRUNCATE TABLE ratings, users, items
                 RESTART IDENTITY CASCADE;
-            """)
+            """
+            )
 
             # users
             user_rows = [(f"user{uid}@example.com",) for uid in user_ids]
@@ -68,7 +74,7 @@ def main():
                 INSERT INTO items (external_id, title, type, metadata)
                 VALUES (%s, %s, %s, %s);
                 """,
-                item_rows
+                item_rows,
             )
 
             cur.execute("SELECT id, external_id FROM items;")
@@ -88,7 +94,7 @@ def main():
                 INSERT INTO ratings (user_id, item_id, rating)
                 VALUES (%s, %s, %s);
                 """,
-                rating_rows
+                rating_rows,
             )
 
             # Information about imported data
@@ -101,7 +107,9 @@ def main():
             cur.execute("SELECT COUNT(*) FROM ratings;")
             ratings_count = cur.fetchone()[0]
 
-    print(f"Import DONE | users={users_count}, items={items_count}, ratings={ratings_count}")
+    print(
+        f"Import DONE | users={users_count}, items={items_count}, ratings={ratings_count}"
+    )
 
 
 if __name__ == "__main__":

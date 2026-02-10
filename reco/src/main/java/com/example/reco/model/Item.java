@@ -35,11 +35,6 @@ public class Item {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
-    @PrePersist
-    protected void onCreate() {
-        this.createdAt = Instant.now();
-    }
-
     public Item() {
     }
 
@@ -49,39 +44,44 @@ public class Item {
         this.metadata = metadata;
     }
 
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = Instant.now();
+    }
+
     public Long getId() {
         return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
     }
 
     public String getTitle() {
         return title;
     }
 
-    public ItemType getType() {
-        return type;
-    }
-
-    public String getMetadata() {
-        return metadata;
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
-
     public void setTitle(String title) {
         this.title = title;
+    }
+
+    public ItemType getType() {
+        return type;
     }
 
     public void setType(ItemType type) {
         this.type = type;
     }
 
+    public String getMetadata() {
+        return metadata;
+    }
+
     public void setMetadata(String metadata) {
         this.metadata = metadata;
     }
 
-    public void setId(Long id) {
-        this.id = id;
+    public Instant getCreatedAt() {
+        return createdAt;
     }
 }

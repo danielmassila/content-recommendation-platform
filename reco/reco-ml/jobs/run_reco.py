@@ -6,7 +6,9 @@ from reco_ml.db import get_db_connection
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Recompute offline recommendations")
-    parser.add_argument("--n", type=int, default=20, help="Number of recommendations per user")
+    parser.add_argument(
+        "--n", type=int, default=20, help="Number of recommendations per user"
+    )
     parser.add_argument("--k", type=int, default=50, help="Number of neighbors for CF")
     parser.add_argument(
         "--algo",

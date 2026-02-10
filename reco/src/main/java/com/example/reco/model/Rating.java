@@ -19,31 +19,21 @@ import java.time.Instant;
 @Table(name = "ratings",
         uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "item_id"}))
 public class Rating {
+    private static final BigDecimal MIN_RATING = BigDecimal.ONE;
+    private static final BigDecimal MAX_RATING = BigDecimal.valueOf(5);
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
-
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(name = "item_id", nullable = false)
     private Item item;
-
     @Column(nullable = false)
     private BigDecimal rating;
-
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
-
-    @PrePersist
-    protected void onCreate() {
-        this.createdAt = Instant.now();
-    }
-
-    private static final BigDecimal MIN_RATING = BigDecimal.ONE;
-    private static final BigDecimal MAX_RATING = BigDecimal.valueOf(5);
 
     public Rating() {
     }
@@ -57,8 +47,17 @@ public class Rating {
         this.rating = rating;
     }
 
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = Instant.now();
+    }
+
     public Long getId() {
         return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
     }
 
     public User getUser() {
@@ -73,15 +72,11 @@ public class Rating {
         return rating;
     }
 
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
-
     public void setRating(BigDecimal rating) {
         this.rating = rating;
     }
 
-    public void setId(Long id) {
-        this.id = id;
+    public Instant getCreatedAt() {
+        return createdAt;
     }
 }

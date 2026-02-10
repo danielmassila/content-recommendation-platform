@@ -23,12 +23,12 @@ public class CreateRatingRequest {
         return userId;
     }
 
-    public BigDecimal getGrade() {
-        return grade;
-    }
-
     public void setUserId(Long userId) {
         this.userId = userId;
+    }
+
+    public BigDecimal getGrade() {
+        return grade;
     }
 
     public void setGrade(BigDecimal grade) {

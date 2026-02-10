@@ -1,22 +1,33 @@
 import pytest
-from reco_ml.algo import build_ratings_by_user, build_users_by_item, top_k_similar_users_for_item, score_cf
+from reco_ml.algo import (
+    build_ratings_by_user,
+    build_users_by_item,
+    top_k_similar_users_for_item,
+    score_cf,
+)
 
 
 def test_top_k_similar_users_for_item_empty_when_no_raters():
-    assert top_k_similar_users_for_item(
-        user_id=1,
-        item_id=999,
-        ratings_by_user={},
-        users_by_item={},
-        k=10,
-    ) == []
+    assert (
+        top_k_similar_users_for_item(
+            user_id=1,
+            item_id=999,
+            ratings_by_user={},
+            users_by_item={},
+            k=10,
+        )
+        == []
+    )
 
 
 def test_top_k_similar_users_filters_self_and_sorts_and_limits():
     ratings = [
-        (1, 10, 5.0), (1, 20, 1.0),
-        (2, 10, 5.0), (2, 20, 1.0),  # user2 identical => sim=1
-        (3, 10, 5.0), (3, 20, 0.0),  # user3 slightly different => sim<1 but >0
+        (1, 10, 5.0),
+        (1, 20, 1.0),
+        (2, 10, 5.0),
+        (2, 20, 1.0),  # user2 identical => sim=1
+        (3, 10, 5.0),
+        (3, 20, 0.0),  # user3 slightly different => sim<1 but >0
         (2, 30, 4.0),
         (3, 30, 2.0),
     ]
@@ -48,9 +59,14 @@ def test_score_cf_weighted_average():
     # user2 similar=1 rates 4
     # user3 similar=0.5 rates 2
     ratings = [
-        (1, 10, 5.0), (1, 20, 1.0),
-        (2, 10, 5.0), (2, 20, 1.0), (2, 30, 4.0),
-        (3, 10, 5.0), (3, 20, 0.0), (3, 30, 2.0),
+        (1, 10, 5.0),
+        (1, 20, 1.0),
+        (2, 10, 5.0),
+        (2, 20, 1.0),
+        (2, 30, 4.0),
+        (3, 10, 5.0),
+        (3, 20, 0.0),
+        (3, 30, 2.0),
     ]
     rbu = build_ratings_by_user(ratings)
     ubi = build_users_by_item(ratings)

@@ -46,44 +46,44 @@ public class CreateRecommendationRequest {
         return userId;
     }
 
-    public Long getItemId() {
-        return itemId;
-    }
-
-    public Double getScore() {
-        return score;
-    }
-
-    public Integer getRank() {
-        return rank;
-    }
-
-    public String getAlgoVersion() {
-        return algoVersion;
-    }
-
-    public String getReason() {
-        return reason;
-    }
-
     public void setUserId(Long userId) {
         this.userId = userId;
+    }
+
+    public Long getItemId() {
+        return itemId;
     }
 
     public void setItemId(Long itemId) {
         this.itemId = itemId;
     }
 
+    public Double getScore() {
+        return score;
+    }
+
     public void setScore(Double score) {
         this.score = score;
+    }
+
+    public Integer getRank() {
+        return rank;
     }
 
     public void setRank(Integer rank) {
         this.rank = rank;
     }
 
+    public String getAlgoVersion() {
+        return algoVersion;
+    }
+
     public void setAlgoVersion(String algoVersion) {
         this.algoVersion = algoVersion;
+    }
+
+    public String getReason() {
+        return reason;
     }
 
     public void setReason(String reason) {

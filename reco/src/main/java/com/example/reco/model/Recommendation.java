@@ -52,11 +52,6 @@ public class Recommendation {
     private Instant generatedAt;
 
 
-    @PrePersist
-    protected void onCreate() {
-        this.generatedAt = Instant.now();
-    }
-
     public Recommendation() {
     }
 
@@ -77,9 +72,17 @@ public class Recommendation {
         this.runId = runId;
     }
 
+    @PrePersist
+    protected void onCreate() {
+        this.generatedAt = Instant.now();
+    }
 
     public Instant getGeneratedAt() {
         return generatedAt;
+    }
+
+    public void setGeneratedAt(Instant generatedAt) {
+        this.generatedAt = generatedAt;
     }
 
     public String getReason() {
@@ -94,59 +97,55 @@ public class Recommendation {
         return algoVersion;
     }
 
+    public void setAlgoVersion(String algoVersion) {
+        this.algoVersion = algoVersion;
+    }
+
     public Integer getRank() {
         return rank;
-    }
-
-    public Double getScore() {
-        return score;
-    }
-
-    public Item getItem() {
-        return item;
-    }
-
-    public User getUser() {
-        return user;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public UUID getRunId() {
-        return runId;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public void setUser(User user) {
-        this.user = user;
-    }
-
-    public void setItem(Item item) {
-        this.item = item;
     }
 
     public void setRank(Integer rank) {
         this.rank = rank;
     }
 
+    public Double getScore() {
+        return score;
+    }
+
     public void setScore(Double score) {
         this.score = score;
     }
 
-    public void setAlgoVersion(String algoVersion) {
-        this.algoVersion = algoVersion;
+    public Item getItem() {
+        return item;
+    }
+
+    public void setItem(Item item) {
+        this.item = item;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public UUID getRunId() {
+        return runId;
     }
 
     public void setRunId(UUID runId) {
         this.runId = runId;
-    }
-
-    public void setGeneratedAt(Instant generatedAt) {
-        this.generatedAt = generatedAt;
     }
 }

@@ -1,6 +1,7 @@
 from reco_ml.algo import recompute_all_recommendations
 from reco_ml.repositories import RecommendationRow
 
+
 def test_recompute_all_recommendations_writes_rows(monkeypatch):
     user_ids = [1, 2]
     item_ids = [10, 20, 30]
@@ -18,11 +19,21 @@ def test_recompute_all_recommendations_writes_rows(monkeypatch):
 
     captured = {"rows": None}
 
-    monkeypatch.setattr("reco_ml.algo.repositories.fetch_all_users", lambda _conn: user_ids)
-    monkeypatch.setattr("reco_ml.algo.repositories.fetch_all_items", lambda _conn: item_ids)
-    monkeypatch.setattr("reco_ml.algo.repositories.fetch_all_ratings", lambda _conn: ratings)
-    monkeypatch.setattr("reco_ml.algo.repositories.get_stats_by_item", lambda _conn: stats_by_items)
-    monkeypatch.setattr("reco_ml.algo.repositories.get_global_rating", lambda _conn: global_rating)
+    monkeypatch.setattr(
+        "reco_ml.algo.repositories.fetch_all_users", lambda _conn: user_ids
+    )
+    monkeypatch.setattr(
+        "reco_ml.algo.repositories.fetch_all_items", lambda _conn: item_ids
+    )
+    monkeypatch.setattr(
+        "reco_ml.algo.repositories.fetch_all_ratings", lambda _conn: ratings
+    )
+    monkeypatch.setattr(
+        "reco_ml.algo.repositories.get_stats_by_item", lambda _conn: stats_by_items
+    )
+    monkeypatch.setattr(
+        "reco_ml.algo.repositories.get_global_rating", lambda _conn: global_rating
+    )
 
     def fake_write(_conn, rows):
         captured["rows"] = list(rows)

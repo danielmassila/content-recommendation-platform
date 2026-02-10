@@ -12,8 +12,6 @@ public interface RecommendationService {
 
     List<RecommendationResponse> recomputeRecommendationsForUser(Long userId, int limit, boolean includeReason, String algo);
 
-    void dismissItemForUser(Long userId, Long itemId);
-
     void recomputeAllRecommendations();
 
     void runRecommendationJob(String mode);

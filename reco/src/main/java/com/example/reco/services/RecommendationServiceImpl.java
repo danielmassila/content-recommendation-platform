@@ -65,8 +65,8 @@ public class RecommendationServiceImpl implements RecommendationService {
         // instead of recomputing all recommendations
         runRecommendationJob("all");
         return getUserRecommendations(userId, limit, includeReason, algo);
-
     }
+
     @Override
     public void recomputeAllRecommendations() {
         runRecommendationJob("all");
