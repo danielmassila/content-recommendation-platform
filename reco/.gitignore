@@ -4,6 +4,7 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 .env
+.venv
 
 ### STS ###
 .apt_generated
@@ -32,3 +33,32 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### OS ###
+.DS_Store
+Thumbs.db
+
+### Python ###
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.mypy_cache/
+ruff_cache/
+
+### Logs / temp ###
+*.log
+tmp/
+.cache/
+
+### Data (raw datasets should not be committed) ###
+datasets/
+data/
+*.csv
+*.parquet
+*.jsonl
