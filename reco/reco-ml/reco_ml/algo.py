@@ -90,3 +90,37 @@ def compute_user_cosine_similarity(user_u_id: int, user_v_id: int, ratings_by_us
         return 0.0
 
     return num / den
+
+def score_cf(user_id: int, item_id: int, ratings_by_user: Dict[int, Dict[int, float]], users_by_item: Dict[int, Dict[int, float]], k: int) -> float:
+    if item_id in ratings_by_user.get(user_id, {}):
+        return 0.0
+    similar_users = top_k_similar_users_for_item(user_id, item_id, ratings_by_user, users_by_item, k)
+    num = sum(sim[1] * sim[2] for sim in similar_users)
+    den = sum(sim[1] for sim in similar_users)
+    if den == 0.0:
+        return 0.0
+    return num / den
+
+def top_k_similar_users_for_item(user_id: int,
+    item_id: int,
+    ratings_by_user: Dict[int, Dict[int, float]],
+    users_by_item: Dict[int, Dict[int, float]],
+    k: int
+    ) -> List[Tuple[int, float, float]]:
+
+    raters = users_by_item.get(item_id, {})
+    if not raters:
+        return []
+
+    similar_users: List[Tuple[int, float, float]] = []
+    for v_id, v_rating_on_item in raters.items():
+        if v_id == user_id:
+            continue
+        sim = compute_user_cosine_similarity(user_id, v_id, ratings_by_user)
+        if sim > 0.0:
+            similar_users.append((v_id, sim, float(v_rating_on_item)))
+
+    similar_users.sort(key=lambda t: t[1], reverse=True)
+    if k > 0:
+        similar_users = similar_users[:k]
+    return similar_users
