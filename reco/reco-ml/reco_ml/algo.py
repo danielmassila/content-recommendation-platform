@@ -124,3 +124,36 @@ def top_k_similar_users_for_item(user_id: int,
     if k > 0:
         similar_users = similar_users[:k]
     return similar_users
+def compute_profile_maturity_threshold(ratings: List[Tuple[int, int, float]]) -> int:
+    ratings_per_user: Dict[int, int] = {}
+
+    for user_id, _, _ in ratings:
+        ratings_per_user[user_id] = ratings_per_user.get(user_id, 0) + 1
+
+    counts = list(ratings_per_user.values())
+
+    if not counts:
+        raise ValueError("No rating given")
+
+    return int(statistics.median(counts))
+
+def compute_alpha(n_ratings: int, profile_maturity_threshold: int, alpha_max: float = 0.9) -> float:
+    k = max(1, int(profile_maturity_threshold))
+    alpha = n_ratings / (n_ratings + k)
+    if alpha_max is not None:
+        alpha = min(alpha, alpha_max)
+    return max(0.0, min(1.0, float(alpha)))
+
+def mix_scores(cf_scores, pop_scores, alpha) -> dict[int, float]:
+    mixed: Dict[int, float] = {}
+    all_items = set(cf_scores.keys()) | set(pop_scores.keys())
+    for item_id in all_items:
+        cf_score = float(cf_scores.get(item_id, 0.0))
+        pop_score = float(pop_scores.get(item_id, 0.0))
+        mixed[item_id] = alpha * cf_score + (1.0 - alpha) * pop_score
+    return mixed
+
+def top_n(scores: Dict[int, float], n: int) -> List[tuple[int, float]]:
+    if n <= 0 or not scores:
+        return []
+    return sorted(scores.items(), key=lambda kv: kv[1], reverse=True)[:n]
