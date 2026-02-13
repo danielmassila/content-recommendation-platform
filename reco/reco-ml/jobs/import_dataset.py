@@ -44,7 +44,7 @@ def main():
             # Reset V1 tables
             cur.execute(
                 """
-                TRUNCATE TABLE ratings, users, items
+                TRUNCATE TABLE ratings, users, items, recommendations
                 RESTART IDENTITY CASCADE;
             """
             )
