@@ -1,4 +1,4 @@
-.PHONY: help up down reset migrate api demo counts py-build py-smoke py-import py-reco py-all test-python test-python-docker
+.PHONY: help up down reset migrate api demo counts py-build py-smoke py-download py-import py-eval py-reco py-all test-python test-python-docker
 # Help
 
 .DEFAULT_GOAL := help
@@ -19,6 +19,7 @@ help:
 	@echo "  py-download      Download dataset into ./datasets (not committed)"
 	@echo "  py-import        Import dataset into DB"
 	@echo "  py-reco          Compute recommendations and write them into DB"
+	@echo "  py-eval          Offline evaluation (train/test split) with Precision@K, Recall@K, MAP@K"
 	@echo "  py-all           Build + smoke + import + reco"
 	@echo ""
 	@echo "Tests:"
@@ -69,6 +70,9 @@ py-import:
 
 py-reco:
 	docker compose run --rm reco-job python -m jobs.run_reco
+
+py-eval:
+	docker compose run --rm reco-job python -m jobs.evaluate_offline --split loo --k 10 --n 50 --neighbors 50
 
 py-all: py-build py-download py-smoke py-import py-reco
 

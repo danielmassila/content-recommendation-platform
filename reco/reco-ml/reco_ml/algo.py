@@ -30,7 +30,6 @@ def choose_m(counts: Iterable[int], quantile: float = 0.80) -> float:
 
     index = math.ceil(quantile * len(counts)) - 1
     index = max(0, min(index, len(counts) - 1))
-
     return float(counts[index])
 
 
@@ -51,69 +50,34 @@ def normalize_scores(scores: Dict[int, float]) -> Dict[int, float]:
     }
 
 
-def compute_popularity_from_stats(
-    stats_by_items: Dict[int, tuple[int, float]], global_rating: float, m=None, q=0.80
-) -> Dict[int, float]:
-    if not stats_by_items:
-        return {}
-
-    if not 0.0 < q < 1.0:
-        raise ValueError("q must be between 0 and 1")
-
-    if m is None:  # we choose m from data only if not given
-        counts = [v for (v, _) in stats_by_items.values()]
-        m = choose_m(counts, quantile=q)
-
-    m = float(m)
-
-    popularity_scores: Dict[int, float] = {}
-    for item_id, (v, R) in stats_by_items.items():
-        popularity_scores[item_id] = (v / (v + m)) * R + (m / (v + m)) * global_rating
-    return normalize_scores(popularity_scores)
 def top_n(scores: Dict[int, float], n: int) -> List[Tuple[int, float]]:
     if n <= 0 or not scores:
         return []
     return heapq.nlargest(n, scores.items(), key=lambda kv: kv[1])
 
 
-def ranked_items(scores: Dict[int, float]) -> list[tuple[int, float]]:
-    return sorted(scores.items(), key=lambda x: x[1], reverse=True)
 def _pair_key(u: int, v: int) -> Tuple[int, int]:
     return (u, v) if u < v else (v, u)
 
 
 def build_ratings_by_user(
-    ratings: List[Tuple[int, int, float]],
     ratings: List[RatingRow],
 ) -> Dict[int, Dict[int, float]]:
     user_ratings: Dict[int, Dict[int, float]] = {}
     for user_id, item_id, rating in ratings:
-        if user_id not in user_ratings:
-            user_ratings[user_id] = {}
-        user_ratings[user_id][item_id] = float(rating)
         user_ratings.setdefault(user_id, {})[item_id] = float(rating)
     return user_ratings
 
 
 def build_users_by_item(
-    ratings: List[Tuple[int, int, float]],
     ratings: List[RatingRow],
 ) -> Dict[int, Dict[int, float]]:
     users_by_items: Dict[int, Dict[int, float]] = {}
     for user_id, item_id, rating in ratings:
-        if item_id not in users_by_items:
-            users_by_items[item_id] = {}
-        users_by_items[item_id][user_id] = float(rating)
         users_by_items.setdefault(item_id, {})[user_id] = float(rating)
     return users_by_items
 
 
-def compute_user_cosine_similarity(
-    user_u_id: int, user_v_id: int, ratings_by_user: Dict[int, Dict[int, float]]
-) -> float:
-    ratings_u = ratings_by_user.get(user_u_id, {})
-    ratings_v = ratings_by_user.get(user_v_id, {})
-    movies_seen_by_both = set(ratings_u.keys()) & set(ratings_v.keys())
 def compute_popularity_from_stats(
     stats_by_items: Dict[int, Tuple[int, float]],
     global_rating: float,
@@ -129,8 +93,6 @@ def compute_popularity_from_stats(
 
     m = float(m)
 
-    if den == 0.0:
-        return 0.0
     pop_scores: Dict[int, float] = {}
     for item_id, (v, R) in stats_by_items.items():
         pop_scores[item_id] = (v / (v + m)) * R + (m / (v + m)) * global_rating
@@ -149,25 +111,12 @@ def top_p_items(pop_scores_all: Dict[int, float], p: int) -> List[int]:
     ]
 
 
-def score_cf(
-    user_id: int,
-    item_id: int,
 def compute_user_cosine_similarity(
     user_u_id: int,
     user_v_id: int,
     ratings_by_user: Dict[int, Dict[int, float]],
-    users_by_item: Dict[int, Dict[int, float]],
-    k: int,
     sim_cache: Dict[Tuple[int, int], float],
 ) -> float:
-    if item_id in ratings_by_user.get(user_id, {}):
-        return 0.0
-    similar_users = top_k_similar_users_for_item(
-        user_id, item_id, ratings_by_user, users_by_item, k
-    )
-    num = sum(sim[1] * sim[2] for sim in similar_users)
-    den = sum(sim[1] for sim in similar_users)
-    if den == 0.0:
     key = _pair_key(user_u_id, user_v_id)
     cached = sim_cache.get(key)
     if cached is not None:
@@ -179,7 +128,6 @@ def compute_user_cosine_similarity(
     if not ru or not rv:
         sim_cache[key] = 0.0
         return 0.0
-    return num / den
 
     # iterate on smaller profile to reduce membership checks
     if len(ru) > len(rv):
@@ -224,25 +172,17 @@ def top_k_similar_users_for_item(
     )
 
     similar_users: List[Tuple[int, float, float]] = []
-    for v_id, v_rating_on_item in raters.items():
     for v_id, v_rating in raters_sorted:
         if v_id == user_id:
             continue
-        sim = compute_user_cosine_similarity(user_id, v_id, ratings_by_user)
         sim = compute_user_cosine_similarity(user_id, v_id, ratings_by_user, sim_cache)
         if sim > 0.0:
-            similar_users.append((v_id, sim, float(v_rating_on_item)))
             similar_users.append((v_id, sim, float(v_rating)))
 
     similar_users.sort(key=lambda t: t[1], reverse=True)
-    if k > 0:
-        similar_users = similar_users[:k]
-    return similar_users
     return similar_users[:k] if k > 0 else similar_users
 
 
-def compute_profile_maturity_threshold(ratings: List[Tuple[int, int, float]]) -> int:
-    ratings_per_user: Dict[int, int] = {}
 def score_cf(
     user_id: int,
     item_id: int,
@@ -268,15 +208,11 @@ def compute_profile_maturity_threshold(ratings: List[RatingRow]) -> int:
     for user_id, _, _ in ratings:
         ratings_per_user[user_id] = ratings_per_user.get(user_id, 0) + 1
 
-    counts = list(ratings_per_user.values())
     if not ratings_per_user:
         raise ValueError("No ratings available")
 
-    if not counts:
-        raise ValueError("No rating given")
     return int(statistics.median(ratings_per_user.values()))
 
-    return int(statistics.median(counts))
 
 def compute_bias_terms(
     ratings: List[RatingRow],
@@ -358,27 +294,12 @@ def score_cf_with_bias(
 
 
 def compute_alpha(
-    n_ratings: int, profile_maturity_threshold: int, alpha_max: float = 0.9
     n_ratings: int,
     profile_maturity_threshold: int,
     alpha_max: float = 0.9,
 ) -> float:
-    k = max(1, int(profile_maturity_threshold))
     k = max(1, profile_maturity_threshold)
     alpha = n_ratings / (n_ratings + k)
-    if alpha_max is not None:
-        alpha = min(alpha, alpha_max)
-    return max(0.0, min(1.0, float(alpha)))
-
-
-def mix_scores(cf_scores, pop_scores, alpha) -> dict[int, float]:
-    mixed: Dict[int, float] = {}
-    all_items = set(cf_scores.keys()) | set(pop_scores.keys())
-    for item_id in all_items:
-        cf_score = float(cf_scores.get(item_id, 0.0))
-        pop_score = float(pop_scores.get(item_id, 0.0))
-        mixed[item_id] = alpha * cf_score + (1.0 - alpha) * pop_score
-    return mixed
     return min(alpha, alpha_max)
 
 
@@ -395,8 +316,6 @@ def mix_scores(
     }
 
 
-def top_n(scores: Dict[int, float], n: int) -> List[tuple[int, float]]:
-    if n <= 0 or not scores:
 def build_candidates_for_user(
     user_id: int,
     ratings_by_user: Dict[int, Dict[int, float]],
@@ -473,7 +392,6 @@ def build_neighbor_pool_for_user(
     seen = ratings_by_user.get(user_id, {})
     if not seen:
         return []
-    return sorted(scores.items(), key=lambda kv: kv[1], reverse=True)[:n]
 
     seed_items = sorted(seen.items(), key=lambda kv: kv[1], reverse=True)
     seed_items = [item_id for item_id, _ in seed_items[:max_seed_items]]
@@ -543,15 +461,11 @@ def recommend_for_user(
     user_id: int,
     n: int,
     k: int,
-    item_list: List[int],
     ratings_by_user: Dict[int, Dict[int, float]],
     users_by_item: Dict[int, Dict[int, float]],
     pop_scores_all: Dict[int, float],
     user_rating_count: Dict[int, int],
     profile_maturity_threshold: int,
-):
-    items_seen_by_user = ratings_by_user.get(user_id, {}).keys()
-    items_to_discover = set(item_list) - set(items_seen_by_user)
     all_items_set: set[int],
     pop_top_items: List[int],
     mu: float,
@@ -585,12 +499,6 @@ def recommend_for_user(
     cf_scores: Dict[int, float] = {}
     pop_scores: Dict[int, float] = {}
 
-    for i_id in items_to_discover:
-        pop_scores[i_id] = pop_scores_all.get(i_id, 0.0)
-        if n_ratings > 0:
-            cf_scores[i_id] = score_cf(user_id, i_id, ratings_by_user, users_by_item, k)
-        else:
-            cf_scores[i_id] = 0.0
     for item_id in candidates:
         pop_scores[item_id] = pop_scores_all.get(item_id, 0.0)
         cf_scores[item_id] = (
@@ -608,10 +516,7 @@ def recommend_for_user(
         )
         # WE CHANGED THE CF FUNCTION ADDING THE BIAS
 
-    alpha = compute_alpha(n_ratings, profile_maturity_threshold)
     cf_scores = normalize_scores(cf_scores)
-    mixed_scores = mix_scores(cf_scores, pop_scores, alpha)
-
     mixed_scores = {
         item_id: alpha * cf_scores[item_id] + (1.0 - alpha) * pop_scores[item_id]
         for item_id in candidates
@@ -621,22 +526,10 @@ def recommend_for_user(
 
 def recompute_all_recommendations(
     conn,
-    n_per_user: int = 20,
-    k_neighbors: int = 50,
     n_per_user: int = DEMO_CONFIG["n_per_user"],
     k_neighbors: int = DEMO_CONFIG["k_neighbors"],
     algo_version: str = "hybrid_usercf_pop",
 ) -> None:
-    """
-    Batch job:
-    - fetch users/items/ratings + stats for popularity
-    - build caches (ratings_by_user, users_by_item, user_rating_count)
-    - compute profile_maturity_threshold once
-    - compute popularity scores once
-    - compute top-N recs for each user
-    - write to recommendations table
-    """
-    # Fetch and compute data from database
     user_ids = repositories.fetch_all_users(conn)
     item_ids = repositories.fetch_all_items(conn)
     all_items_set = set(item_ids)
@@ -645,10 +538,8 @@ def recompute_all_recommendations(
     stats_by_items = repositories.get_stats_by_item(conn)
     global_rating = repositories.get_global_rating(conn)
 
-    # Build caches
     ratings_by_user = build_ratings_by_user(ratings)
     users_by_item = build_users_by_item(ratings)
-    user_rating_count = {uid: len(ratings_by_user.get(uid, {})) for uid in user_ids}
     user_rating_count = {u: len(ratings_by_user.get(u, {})) for u in user_ids}
 
     # Threshold and popularity
