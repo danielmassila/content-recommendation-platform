@@ -278,11 +278,93 @@ def compute_profile_maturity_threshold(ratings: List[RatingRow]) -> int:
 
     return int(statistics.median(counts))
 
+def compute_bias_terms(
+    ratings: List[RatingRow],
+    reg_item: float = 10.0,
+    reg_user: float = 15.0,
+) -> tuple[float, Dict[int, float], Dict[int, float]]:
+    """
+    Baseline: r_ui ≈ mu + b_i + b_u
+
+    reg_item/reg_user are shrinkage strengths:
+    - higher => biases closer to 0 (more conservative)
+    """
+    if not ratings:
+        return 0.0, {}, {}
+
+    mu = sum(r for _, _, r in ratings) / len(ratings)
+
+    # group ratings
+    ratings_by_item: Dict[int, List[Tuple[int, float]]] = defaultdict(list)
+    ratings_by_user: Dict[int, List[Tuple[int, float]]] = defaultdict(list)
+    for u, i, r in ratings:
+        ratings_by_item[i].append((u, float(r)))
+        ratings_by_user[u].append((i, float(r)))
+
+    # item bias: b_i = sum(r_ui - mu) / (reg_item + n_i)
+    b_i: Dict[int, float] = {}
+    for i, rows in ratings_by_item.items():
+        s = sum((r - mu) for _, r in rows)
+        b_i[i] = s / (reg_item + len(rows))
+
+    # user bias: b_u = sum(r_ui - mu - b_i) / (reg_user + n_u)
+    b_u: Dict[int, float] = {}
+    for u, rows in ratings_by_user.items():
+        s = 0.0
+        for i, r in rows:
+            s += r - mu - b_i.get(i, 0.0)
+        b_u[u] = s / (reg_user + len(rows))
+
+    return float(mu), b_i, b_u
+
+
+def score_cf_with_bias(
+    user_id: int,
+    item_id: int,
+    ratings_by_user: Dict[int, Dict[int, float]],
+    users_by_item: Dict[int, Dict[int, float]],
+    k: int,
+    sim_cache: Dict[Tuple[int, int], float],
+    mu: float,
+    b_i: Dict[int, float],
+    b_u: Dict[int, float],
+) -> float:
+    """
+    Predict rating using neighborhood CF on residuals:
+    pred = baseline(u,i) + weighted_avg( residual(v,i) )
+    where residual(v,i) = r_vi - baseline(v,i)
+    """
+    if item_id in ratings_by_user.get(user_id, {}):
+        return 0.0
+
+    neighbors = top_k_similar_users_for_item(
+        user_id, item_id, ratings_by_user, users_by_item, k, sim_cache
+    )
+    if not neighbors:
+        # fallback: baseline only
+        return float(mu + b_u.get(user_id, 0.0) + b_i.get(item_id, 0.0))
+
+    num = 0.0
+    den = 0.0
+    for v_id, sim, r_vi in neighbors:
+        baseline_vi = mu + b_u.get(v_id, 0.0) + b_i.get(item_id, 0.0)
+        resid = float(r_vi) - float(baseline_vi)
+        num += float(sim) * resid
+        den += float(sim)
+
+    baseline_ui = mu + b_u.get(user_id, 0.0) + b_i.get(item_id, 0.0)
+    adj = (num / den) if den > 0.0 else 0.0
+    return float(baseline_ui + adj)
+
 
 def compute_alpha(
     n_ratings: int, profile_maturity_threshold: int, alpha_max: float = 0.9
+    n_ratings: int,
+    profile_maturity_threshold: int,
+    alpha_max: float = 0.9,
 ) -> float:
     k = max(1, int(profile_maturity_threshold))
+    k = max(1, profile_maturity_threshold)
     alpha = n_ratings / (n_ratings + k)
     if alpha_max is not None:
         alpha = min(alpha, alpha_max)
@@ -297,6 +379,9 @@ def mix_scores(cf_scores, pop_scores, alpha) -> dict[int, float]:
         pop_score = float(pop_scores.get(item_id, 0.0))
         mixed[item_id] = alpha * cf_score + (1.0 - alpha) * pop_score
     return mixed
+    return min(alpha, alpha_max)
+
+
 def mix_scores(
     cf_scores: Dict[int, float],
     pop_scores: Dict[int, float],
@@ -388,6 +473,7 @@ def recompute_all_recommendations(
 
     # Recommend for each user
     rows: List[RecommendationRow] = []
+    mu, b_i, b_u = compute_bias_terms(ratings, reg_item=10.0, reg_user=15.0)
 
     for user_id in user_ids:
         recs = recommend_for_user(
@@ -403,6 +489,9 @@ def recompute_all_recommendations(
             profile_maturity_threshold=profile_threshold,
             all_items_set=all_items_set,
             pop_top_items=pop_top_items,
+            mu=mu,
+            b_i=b_i,
+            b_u=b_u,
         )
 
         # Convert to DB rows with ranks
