@@ -9,12 +9,9 @@ from reco_ml.algo import (
 
 def test_profile_maturity_threshold_median():
     ratings = [
-        (1, 10, 4.0),
-        (1, 11, 3.0),
-        (1, 12, 5.0),  # 3 ratings
-        (2, 10, 4.0),  # 1 rating
-        (3, 10, 2.0),
-        (3, 11, 2.0),  # 2 ratings
+        (1, 10, 4.0), (1, 11, 3.0), (1, 12, 5.0),  # 3 ratings
+        (2, 10, 4.0),                              # 1 rating
+        (3, 10, 2.0), (3, 11, 2.0),                # 2 ratings
     ]
     # counts = [3,1,2] median = 2
     assert compute_profile_maturity_threshold(ratings) == 2
@@ -35,10 +32,11 @@ def test_mix_scores_union_of_items():
     cf = {1: 1.0, 2: 0.0}
     pop = {2: 1.0, 3: 0.5}
     mixed = mix_scores(cf, pop, alpha=0.5)
+
     assert set(mixed.keys()) == {1, 2, 3}
-    assert mixed[1] == 0.5  # pop missing => 0
+    assert mixed[1] == 0.5       # pop missing => 0
     assert mixed[2] == 0.5
-    assert mixed[3] == 0.25  # cf missing => 0
+    assert mixed[3] == 0.25      # cf missing => 0
 
 
 def test_top_n_edge_cases():

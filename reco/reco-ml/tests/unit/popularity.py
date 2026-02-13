@@ -3,7 +3,7 @@ from reco_ml.algo import (
     choose_m,
     normalize_scores,
     compute_popularity_from_stats,
-    ranked_items,
+    top_n,
 )
 
 
@@ -63,7 +63,7 @@ def test_compute_popularity_from_stats_given_m_and_normalized():
     assert max(scores.values()) == pytest.approx(1.0)
 
 
-def test_ranked_items_descending():
+def test_top_n_descending():
     scores = {1: 0.2, 2: 0.9, 3: 0.5}
-    ranked = ranked_items(scores)
+    ranked = top_n(scores, n=10)
     assert ranked == [(2, 0.9), (3, 0.5), (1, 0.2)]
