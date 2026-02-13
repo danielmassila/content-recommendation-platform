@@ -78,7 +78,7 @@ py-all: py-build py-download py-smoke py-import py-reco
 
 
 # Full demo: rebuild DB, migrate schema, import data, compute recos, show counts, run API
-demo: reset migrate py-all counts api
+demo: reset migrate py-all eval counts api
 	@echo ""
 	@echo "Demo ready:"
 	@echo " - API     -> http://localhost:8081"
