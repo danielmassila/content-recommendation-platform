@@ -40,17 +40,10 @@ def test_recompute_all_recommendations_writes_rows(monkeypatch):
 
     monkeypatch.setattr("reco_ml.algo.repositories.write_recommendations", fake_write)
 
-    def fake_recommend_for_user(
-        user_id: int,
-        n: int,
-        k: int,
-        item_list: list[int],
-        ratings_by_user: dict[int, dict[int, float]],
-        users_by_item: dict[int, dict[int, float]],
-        pop_scores_all: dict[int, float],
-        user_rating_count: dict[int, int],
-        profile_maturity_threshold: int,
-    ):
+    def fake_recommend_for_user(**kwargs):
+        user_id = kwargs["user_id"]
+        n = kwargs["n"]
+
         if user_id == 1:
             return [(20, 0.9), (30, 0.8)][:n]
         if user_id == 2:
