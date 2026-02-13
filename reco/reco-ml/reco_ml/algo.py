@@ -552,7 +552,35 @@ def recommend_for_user(
 ):
     items_seen_by_user = ratings_by_user.get(user_id, {}).keys()
     items_to_discover = set(item_list) - set(items_seen_by_user)
+    all_items_set: set[int],
+    pop_top_items: List[int],
+    mu: float,
+    b_i: Dict[int, float],
+    b_u: Dict[int, float],
+) -> List[Tuple[int, float]]:
+    sim_cache: Dict[Tuple[int, int], float] = {}
+
+    candidates = build_candidates_for_user(
+        user_id=user_id,
+        ratings_by_user=ratings_by_user,
+        users_by_item=users_by_item,
+        all_items_set=all_items_set,
+        pop_top_items=pop_top_items,
+        sim_cache=sim_cache,
+    )
+
+    neighbor_pool_list = build_neighbor_pool_for_user(
+        user_id=user_id,
+        ratings_by_user=ratings_by_user,
+        users_by_item=users_by_item,
+        sim_cache=sim_cache,
+        neighbor_pool=DEMO_CONFIG["neighbor_pool"],
+        max_seed_items=DEMO_CONFIG["max_seed_items"],
+        max_raters_per_item=DEMO_CONFIG["max_raters_per_item"],
+    )
+
     n_ratings = user_rating_count.get(user_id, 0)
+    alpha = compute_alpha(n_ratings, profile_maturity_threshold)
 
     cf_scores: Dict[int, float] = {}
     pop_scores: Dict[int, float] = {}
@@ -563,11 +591,31 @@ def recommend_for_user(
             cf_scores[i_id] = score_cf(user_id, i_id, ratings_by_user, users_by_item, k)
         else:
             cf_scores[i_id] = 0.0
+    for item_id in candidates:
+        pop_scores[item_id] = pop_scores_all.get(item_id, 0.0)
+        cf_scores[item_id] = (
+            score_cf_with_bias_from_pool(
+                user_id=user_id,
+                item_id=item_id,
+                ratings_by_user=ratings_by_user,
+                neighbor_pool=neighbor_pool_list,
+                mu=mu,
+                b_i=b_i,
+                b_u=b_u,
+            )
+            if n_ratings > 0
+            else float(mu + b_u.get(user_id, 0.0) + b_i.get(item_id, 0.0))
+        )
+        # WE CHANGED THE CF FUNCTION ADDING THE BIAS
 
     alpha = compute_alpha(n_ratings, profile_maturity_threshold)
     cf_scores = normalize_scores(cf_scores)
     mixed_scores = mix_scores(cf_scores, pop_scores, alpha)
 
+    mixed_scores = {
+        item_id: alpha * cf_scores[item_id] + (1.0 - alpha) * pop_scores[item_id]
+        for item_id in candidates
+    }
     return top_n(mixed_scores, n)
 
 
