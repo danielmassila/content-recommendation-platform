@@ -397,8 +397,146 @@ def mix_scores(
 
 def top_n(scores: Dict[int, float], n: int) -> List[tuple[int, float]]:
     if n <= 0 or not scores:
+def build_candidates_for_user(
+    user_id: int,
+    ratings_by_user: Dict[int, Dict[int, float]],
+    users_by_item: Dict[int, Dict[int, float]],
+    all_items_set: set[int],
+    pop_top_items: List[int],
+    sim_cache: Dict[Tuple[int, int], float],
+    neighbor_pool: int = DEMO_CONFIG["neighbor_pool"],
+    max_seed_items: int = DEMO_CONFIG["max_seed_items"],
+    max_raters_per_item: int = DEMO_CONFIG["max_raters_per_item"],
+    rating_threshold: float = 4.0,
+    max_candidates_cf: int = DEMO_CONFIG["max_candidates_cf"],
+) -> set[int]:
+    seen = ratings_by_user.get(user_id, {})
+    seen_set = set(seen.keys())
+
+    if not seen_set:
+        return set(pop_top_items)
+
+    candidates: set[int] = set(pop_top_items)
+
+    seed_items = sorted(seen.items(), key=lambda kv: kv[1], reverse=True)
+    seed_items = [item_id for item_id, _ in seed_items[:max_seed_items]]
+
+    neighbor_scores: Dict[int, float] = {}
+
+    for item_id in seed_items:
+        raters = users_by_item.get(item_id, {})
+        if not raters:
+            continue
+
+        raters_sorted = heapq.nlargest(
+            max_raters_per_item, raters.items(), key=lambda kv: kv[1]
+        )
+
+        for v_id, _ in raters_sorted:
+            if v_id == user_id:
+                continue
+            sim = compute_user_cosine_similarity(
+                user_id, v_id, ratings_by_user, sim_cache
+            )
+            if sim > neighbor_scores.get(v_id, 0.0):
+                neighbor_scores[v_id] = sim
+
+    if not neighbor_scores:
+        return (candidates & all_items_set) - seen_set
+
+    top_neighbors = sorted(neighbor_scores.items(), key=lambda kv: kv[1], reverse=True)[
+        :neighbor_pool
+    ]
+
+    cf_candidates: set[int] = set()
+    for v_id, _ in top_neighbors:
+        for item_id, r in ratings_by_user.get(v_id, {}).items():
+            if item_id not in seen_set and r >= rating_threshold:
+                cf_candidates.add(item_id)
+                if len(cf_candidates) >= max_candidates_cf:
+                    break
+        if len(cf_candidates) >= max_candidates_cf:
+            break
+
+    return (candidates | cf_candidates) & all_items_set - seen_set
+
+
+def build_neighbor_pool_for_user(
+    user_id: int,
+    ratings_by_user: Dict[int, Dict[int, float]],
+    users_by_item: Dict[int, Dict[int, float]],
+    sim_cache: Dict[Tuple[int, int], float],
+    neighbor_pool: int = DEMO_CONFIG["neighbor_pool"],
+    max_seed_items: int = DEMO_CONFIG["max_seed_items"],
+    max_raters_per_item: int = DEMO_CONFIG["max_raters_per_item"],
+) -> List[Tuple[int, float]]:
+    seen = ratings_by_user.get(user_id, {})
+    if not seen:
         return []
     return sorted(scores.items(), key=lambda kv: kv[1], reverse=True)[:n]
+
+    seed_items = sorted(seen.items(), key=lambda kv: kv[1], reverse=True)
+    seed_items = [item_id for item_id, _ in seed_items[:max_seed_items]]
+
+    neighbor_scores: Dict[int, float] = {}
+
+    for item_id in seed_items:
+        raters = users_by_item.get(item_id, {})
+        if not raters:
+            continue
+
+        raters_top = heapq.nlargest(
+            max_raters_per_item, raters.items(), key=lambda kv: kv[1]
+        )
+
+        for v_id, _ in raters_top:
+            if v_id == user_id:
+                continue
+            sim = compute_user_cosine_similarity(
+                user_id, v_id, ratings_by_user, sim_cache
+            )
+            if sim > neighbor_scores.get(v_id, 0.0):
+                neighbor_scores[v_id] = sim
+
+    if not neighbor_scores:
+        return []
+
+    return heapq.nlargest(neighbor_pool, neighbor_scores.items(), key=lambda kv: kv[1])
+
+
+def score_cf_with_bias_from_pool(
+    user_id: int,
+    item_id: int,
+    ratings_by_user: Dict[int, Dict[int, float]],
+    neighbor_pool: List[Tuple[int, float]],  # [(v_id, sim)]
+    mu: float,
+    b_i: Dict[int, float],
+    b_u: Dict[int, float],
+) -> float:
+    # already rated => do not recommend
+    if item_id in ratings_by_user.get(user_id, {}):
+        return 0.0
+
+    baseline_ui = mu + b_u.get(user_id, 0.0) + b_i.get(item_id, 0.0)
+
+    num = 0.0
+    den = 0.0
+
+    for v_id, sim in neighbor_pool:
+        r_vi = ratings_by_user.get(v_id, {}).get(item_id)
+        if r_vi is None:
+            continue
+
+        baseline_vi = mu + b_u.get(v_id, 0.0) + b_i.get(item_id, 0.0)
+        resid = float(r_vi) - float(baseline_vi)
+
+        num += float(sim) * resid
+        den += float(sim)
+
+    if den <= 0.0:
+        return float(baseline_ui)
+
+    return float(baseline_ui + (num / den))
 
 
 def recommend_for_user(
