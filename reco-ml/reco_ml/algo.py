@@ -523,7 +523,6 @@ def recommend_for_user(
     }
     return top_n(mixed_scores, n)
 
-
 def recompute_all_recommendations(
     conn,
     n_per_user: int = DEMO_CONFIG["n_per_user"],
@@ -543,26 +542,25 @@ def recompute_all_recommendations(
     user_rating_count = {u: len(ratings_by_user.get(u, {})) for u in user_ids}
 
     # Threshold and popularity
-    profile_maturity_threshold = compute_profile_maturity_threshold(ratings)
     profile_threshold = compute_profile_maturity_threshold(ratings)
     pop_scores_all = compute_popularity_from_stats(stats_by_items, global_rating)
     pop_top_items = top_p_items(pop_scores_all, p=DEMO_CONFIG["pop_p"])
 
+    # Bias terms
+    mu, b_i, b_u = compute_bias_terms(ratings, reg_item=10.0, reg_user=15.0)
+
     # Recommend for each user
     rows: List[RecommendationRow] = []
-    mu, b_i, b_u = compute_bias_terms(ratings, reg_item=10.0, reg_user=15.0)
 
     for user_id in user_ids:
         recs = recommend_for_user(
             user_id=user_id,
             n=n_per_user,
             k=k_neighbors,
-            item_list=item_ids,
             ratings_by_user=ratings_by_user,
             users_by_item=users_by_item,
             pop_scores_all=pop_scores_all,
             user_rating_count=user_rating_count,
-            profile_maturity_threshold=profile_maturity_threshold,
             profile_maturity_threshold=profile_threshold,
             all_items_set=all_items_set,
             pop_top_items=pop_top_items,
@@ -571,9 +569,6 @@ def recompute_all_recommendations(
             b_u=b_u,
         )
 
-        # Convert to DB rows with ranks
-        rank = 1
-        for item_id, score in recs:
         for rank, (item_id, score) in enumerate(recs, start=1):
             rows.append(
                 RecommendationRow(
@@ -581,11 +576,8 @@ def recompute_all_recommendations(
                     item_id=int(item_id),
                     score=float(score),
                     algo_version=algo_version,
-                    rank=int(rank),
                     rank=rank,
                 )
             )
-            rank += 1
 
-    # Write into the database
     repositories.write_recommendations(conn, rows)
