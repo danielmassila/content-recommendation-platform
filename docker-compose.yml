@@ -1,7 +1,6 @@
 services:
   db:
     image: postgres:16
-    container_name: reco-postgres
     restart: always
     environment:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -16,7 +15,7 @@ services:
     image: adminer
     restart: always
     ports:
-      - "8080:8080"
+      - "8082:8080"
 
   reco-job:
     build:
