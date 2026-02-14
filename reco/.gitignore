@@ -58,6 +58,5 @@ tmp/
 ### Data (raw datasets should not be committed) ###
 datasets/
 data/
-*.csv
 *.parquet
 *.jsonl
