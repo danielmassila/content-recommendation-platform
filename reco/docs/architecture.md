@@ -2,7 +2,7 @@
 
 This document describes both the macro-level system design and the internal backend layering decisions.
 
-# 1 - Macro architecture
+## 1 - Macro architecture
 
 The system is composed of four main components:
 
@@ -20,10 +20,10 @@ These components interact as shown below:
 
 This indirect coupling through the database was chosen deliberately for simplicity.
 
-# 2 - Architectural philosophy
+## 2 - Architectural philosophy
 
 The primary goal of V1 is to build a **clean, understandable, evolvable system**, not to prematurely optimize
-scalability. Algorithms are only one component of the pipeline.
+scalability.
 
 ### Known trade-offs
 
@@ -34,38 +34,36 @@ scalability. Algorithms are only one component of the pipeline.
 
 These limitations come from the simplicity of v1 and will be addressed in future versions.
 
-# 3 - Backend Layered achitecture (Spring Boot)
+## 3 - Backend Layered achitecture (Spring Boot)
 
 The Java backend follows a classical layered architecture:
 
-## Controller Layer
+### Controller Layer
 
 - Expose REST endpoints
 - Validate input parameters
 - Return DTO responses
 - Handle HTTP concerns
 
-## Service Layer
+### Service Layer
 
 - Business logic
 - Recommendation orchestration
 - Transaction boundaries
 - Triggering Python batch jobs
 
-## Repository Layer
+### Repository Layer
 
 - Spring Data JPA
 - Pagination support
 - Custom query methods
 - Database abstraction
 
-# 4 - Python Recommendation Module
+## 4 - Python Recommendation Module
 
 The Python side is structured to remain framework-independent.
 
-Directory structure:
-
-## Responsibilities
+Directory structure by responsibilities:
 
 - Data fetching abstraction (`repositories.py`)
 - Pure algorithm implementation (`algo.py`)
@@ -75,7 +73,7 @@ Directory structure:
 
 The recommendation logic is deliberately written as pure Python logic, decoupled from any web framework.
 
-# 5 - Data flow
+## 5 - Data flow
 
 1. Dataset is downloaded.
 2. Data is imported into PostgreSQL.
@@ -86,9 +84,9 @@ The recommendation logic is deliberately written as pure Python logic, decoupled
     - Writes results to `recommendations` table
 4. Java API exposes recommendations via REST endpoints.
 
-We therefore clearly separate computation phase from serving phase.
+We clearly separate computation phase from serving phase.
 
-# 6 - Infrastructure & deployment
+## 6 - Infrastructure & deployment
 
 All infrastructure aspects are managed through Docker Compose.
 
@@ -109,33 +107,16 @@ Environment variables:
 
 Flyway handles database migrations.
 
-# 7 - Scalability Perspective
+## 7 - Scalability perspectives
 
-## What scales well
+### What scales well
 
 - Read-heavy serving (precomputed recommendations)
 - Clear modular boundaries
 - Containerized deployment
 
-## What does not scale yet
+### What does not scale yet
 
 - Full batch recomputation
 - User-user similarity computed on the fly
 - Database coupling between services
-
-# 8 - Planned architectural evolution
-
-## V2
-
-- Turn Python module into dedicated microservice
-- Introduce REST contract or async messaging
-- Incremental recomputation per user
-- Similarity precomputation
-- Redis caching layer
-
-## V3
-
-- Frontend application
-- Event-driven architecture
-- ML-based recommendation models
-- Observability and monitoring stack

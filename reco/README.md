@@ -58,8 +58,3 @@ git clone <repo>
 cd reco
 make demo
 ```
-
-Not done yet
-
-- optimize the process of making recommendations (right now very long)
-- add a doc about recommendation algorithm and one about performance evaluation
