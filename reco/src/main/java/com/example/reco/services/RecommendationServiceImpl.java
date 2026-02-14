@@ -79,10 +79,16 @@ public class RecommendationServiceImpl implements RecommendationService {
             pb.redirectErrorStream(true);
 
             Process p = startProcess(pb);
+
+            String output;
+            try (var reader = new java.io.BufferedReader(new java.io.InputStreamReader(p.getInputStream()))) {
+                output = reader.lines().reduce("", (a, b) -> a + b + "\n");
+            }
+
             int exit = p.waitFor();
 
             if (exit != 0) {
-                throw new RuntimeException("Reco job failed with exit code " + exit);
+                throw new RuntimeException("Reco job failed (exit=" + exit + ")\nOutput:\n" + output);
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -96,9 +102,8 @@ public class RecommendationServiceImpl implements RecommendationService {
     protected ProcessBuilder createProcessBuilder(String mode) {
         return new ProcessBuilder(
                 "docker", "compose", "run", "--rm",
-                "reco-ml",
+                "reco-job",
                 "python", "-m", "jobs.run_reco",
-                "--mode", mode,
                 "--n", "20",
                 "--k", "50",
                 "--algo", "hybrid_usercf_pop"
