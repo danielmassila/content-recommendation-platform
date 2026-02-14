@@ -1,4 +1,5 @@
 import argparse
+import time
 
 from reco_ml.algo import recompute_all_recommendations
 from reco_ml.db import get_db_connection
@@ -24,6 +25,8 @@ def main() -> None:
 
     args = parser.parse_args()
 
+    start = time.perf_counter()
+
     with get_db_connection() as conn:
         recompute_all_recommendations(
             conn,
@@ -31,6 +34,10 @@ def main() -> None:
             k_neighbors=args.k,
             algo_version=args.algo,
         )
+
+        end = time.perf_counter()
+        duration = end - start
+        print(f"\nRecomputation finished in {duration:.2f} seconds")
 
         if args.check:
             with conn.cursor() as cur:
