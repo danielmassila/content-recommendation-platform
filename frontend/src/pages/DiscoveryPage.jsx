@@ -1,6 +1,6 @@
 import MovieCard from '../components/media/MovieCard'
 import MovieRow from '../components/media/MovieRow'
-import Button from '../components/ui/Button'
+import { Button, EmptyState, ErrorState, LoadingState } from '../components/ui'
 import { useRecommendations } from '../hooks'
 
 const demoUserId = 1
@@ -27,26 +27,20 @@ const DiscoveryPage = () => {
       </div>
 
       {isLoading ? (
-        <section className="feedback-panel">
-          <p className="eyebrow">Chargement</p>
-          <h2>On cherche tes recommandations...</h2>
-        </section>
+        <LoadingState title="On cherche tes recommandations..." />
       ) : null}
 
       {error ? (
-        <section className="feedback-panel">
-          <p className="eyebrow">API indisponible</p>
-          <h2>Impossible de charger les recommandations</h2>
-          <p>{error.message}</p>
-          <Button onClick={refresh}>Réessayer</Button>
-        </section>
+        <ErrorState
+          error={error}
+          eyebrow="API indisponible"
+          onRetry={refresh}
+          title="Impossible de charger les recommandations"
+        />
       ) : null}
 
       {isEmpty ? (
-        <section className="feedback-panel">
-          <p className="eyebrow">Aucun résultat</p>
-          <h2>Pas encore de recommandation pour cet utilisateur</h2>
-        </section>
+        <EmptyState title="Pas encore de recommandation pour cet utilisateur" />
       ) : null}
 
       {featuredPick ? (
