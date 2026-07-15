@@ -58,3 +58,23 @@ git clone <repo>
 cd reco
 make demo
 ```
+
+## Data enrichment
+
+MovieLens is used as the local recommendation dataset. The download/import pipeline stores:
+
+- users from MovieLens user ids
+- movies in `items`
+- ratings in `ratings`
+- external ids from `links.csv` in `items.metadata`
+
+TMDB is optional and should be used as an enrichment source, not as the application database.
+
+```bash
+cp .env.example .env
+# fill TMDB_API_KEY in .env
+make py-enrich-tmdb
+```
+
+The TMDB job enriches existing `items.metadata` with poster paths, overview, release date,
+runtime, popularity and vote averages when a `tmdbId` is available.

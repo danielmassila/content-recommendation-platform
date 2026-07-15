@@ -1,4 +1,4 @@
-.PHONY: help up down reset migrate api demo counts py-build py-smoke py-download py-import py-eval py-reco py-all test-python test-python-docker
+.PHONY: help up down reset migrate api demo counts py-build py-smoke py-download py-import py-enrich-tmdb py-eval py-reco py-all test-python test-python-docker
 # Help
 
 .DEFAULT_GOAL := help
@@ -18,6 +18,7 @@ help:
 	@echo "  py-smoke         Run smoke checks on dataset/pipeline"
 	@echo "  py-download      Download dataset into ./datasets (not committed)"
 	@echo "  py-import        Import dataset into DB"
+	@echo "  py-enrich-tmdb   Enrich imported MovieLens items with TMDB metadata"
 	@echo "  py-reco          Compute recommendations and write them into DB"
 	@echo "  py-eval          Offline evaluation (train/test split) with Precision@K, Recall@K, MAP@K"
 	@echo "  py-all           Build + smoke + import + reco"
@@ -67,6 +68,9 @@ py-download:
 
 py-import:
 	docker compose run --rm reco-job python -m jobs.import_dataset
+
+py-enrich-tmdb:
+	docker compose run --rm reco-job python -m jobs.enrich_tmdb
 
 py-reco:
 	docker compose run --rm reco-job python -m jobs.run_reco
