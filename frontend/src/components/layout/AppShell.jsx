@@ -1,24 +1,23 @@
+import { Link, NavLink } from 'react-router-dom'
 import Button from '../ui/Button'
 
-const AppShell = ({ children, currentPage, navItems, onNavigate, user }) => {
+const AppShell = ({ children, navItems, user }) => {
   return (
     <div className="app-shell">
       <header className="topbar">
-        <button className="brand" type="button" onClick={() => onNavigate('home')}>
+        <Link className="brand" to="/">
           Tonight&apos;s Pick
-        </button>
+        </Link>
 
         <nav className="main-nav" aria-label="Navigation principale">
           {navItems.map((item) => (
-            <button
-              aria-current={currentPage === item.id ? 'page' : undefined}
-              className="nav-link"
+            <NavLink
+              className={({ isActive }) => `nav-link ${isActive ? 'nav-link--active' : ''}`.trim()}
               key={item.id}
-              type="button"
-              onClick={() => onNavigate(item.id)}
+              to={item.path}
             >
               {item.label}
-            </button>
+            </NavLink>
           ))}
         </nav>
 
@@ -27,7 +26,7 @@ const AppShell = ({ children, currentPage, navItems, onNavigate, user }) => {
             {user.initials}
           </span>
           <span>{user.name}</span>
-          <Button variant="ghost" onClick={() => onNavigate('signIn')}>
+          <Button as={Link} to="/login" variant="ghost">
             Connexion
           </Button>
         </div>

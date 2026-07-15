@@ -1,8 +1,16 @@
 const Button = ({ children, className = '', variant = 'primary', ...props }) => {
+  const Component = props.as ?? 'button'
+  const componentProps = { ...props }
+  delete componentProps.as
+
   return (
-    <button className={`button button--${variant} ${className}`.trim()} type="button" {...props}>
+    <Component
+      className={`button button--${variant} ${className}`.trim()}
+      type={Component === 'button' ? 'button' : undefined}
+      {...componentProps}
+    >
       {children}
-    </button>
+    </Component>
   )
 }
 

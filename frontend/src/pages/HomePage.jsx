@@ -1,6 +1,9 @@
+import { useNavigate } from 'react-router-dom'
 import Button from '../components/ui/Button'
 
-const HomePage = ({ onNavigate }) => {
+const HomePage = () => {
+  const navigate = useNavigate()
+
   return (
     <section className="page page--home">
       <div className="home-hero">
@@ -10,8 +13,8 @@ const HomePage = ({ onNavigate }) => {
           Une recommandation sobre, rapide et personnelle pour arrêter de scroller avant même de lancer le film.
         </p>
         <div className="hero-actions">
-          <Button onClick={() => onNavigate('preferences')}>Découvrir</Button>
-          <Button variant="secondary" onClick={() => onNavigate('discovery')}>
+          <Button onClick={() => navigate('/preferences')}>Découvrir</Button>
+          <Button variant="secondary" onClick={() => navigate('/discover')}>
             Voir le catalogue
           </Button>
         </div>

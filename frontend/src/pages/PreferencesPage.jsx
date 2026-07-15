@@ -1,7 +1,10 @@
+import { useNavigate } from 'react-router-dom'
 import { preferenceOptions } from '../data/movies'
 import Button from '../components/ui/Button'
 
-const PreferencesPage = ({ onNavigate }) => {
+const PreferencesPage = () => {
+  const navigate = useNavigate()
+
   return (
     <section className="page page--preferences">
       <div className="preference-panel">
@@ -16,7 +19,7 @@ const PreferencesPage = ({ onNavigate }) => {
           ))}
         </div>
         {/* TODO preferences: persister les réponses et enrichir la question suivante depuis le backend. */}
-        <Button onClick={() => onNavigate('discovery')}>Je préfère...</Button>
+        <Button onClick={() => navigate('/discover')}>Je préfère...</Button>
       </div>
     </section>
   )

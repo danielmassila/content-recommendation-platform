@@ -1,6 +1,6 @@
 export const NAV_ITEMS = [
-  { id: 'home', label: 'Accueil' },
-  { id: 'preferences', label: 'Préférences' },
-  { id: 'discovery', label: 'Catalogue' },
-  { id: 'profile', label: 'Profil' },
+  { id: 'home', label: 'Accueil', path: '/' },
+  { id: 'preferences', label: 'Préférences', path: '/preferences' },
+  { id: 'discovery', label: 'Catalogue', path: '/discover' },
+  { id: 'profile', label: 'Profil', path: '/profile' },
 ]

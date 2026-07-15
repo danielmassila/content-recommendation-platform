@@ -64,6 +64,7 @@ button {
   font-size: 1.05rem;
   font-weight: 780;
   letter-spacing: 0;
+  text-decoration: none;
 }
 
 .main-nav {
@@ -80,16 +81,20 @@ button {
 }
 
 .nav-link {
+  display: inline-flex;
+  align-items: center;
   min-height: 38px;
   padding: 0 14px;
   border-radius: 999px;
+  text-decoration: none;
   transition:
     color 160ms ease,
     background 160ms ease;
 }
 
 .nav-link:hover,
-.nav-link[aria-current='page'] {
+.nav-link[aria-current='page'],
+.nav-link--active {
   color: var(--text);
   background: rgba(255, 255, 255, 0.08);
 }
@@ -118,6 +123,9 @@ button {
 }
 
 .button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-height: 42px;
   border: 1px solid transparent;
   border-radius: 999px;
@@ -125,6 +133,7 @@ button {
   color: var(--text);
   background: var(--accent);
   font-weight: 760;
+  text-decoration: none;
   transition:
     transform 160ms ease,
     border-color 160ms ease,
