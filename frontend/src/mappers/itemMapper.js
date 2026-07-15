@@ -40,7 +40,7 @@ const toMatchPercent = (score) => {
   return Math.round(score <= 1 ? score * 100 : score)
 }
 
-export const toMovieCard = (item, recommendation, index = 0) => {
+export const toMovieCard = (item, recommendation, index = 0, rating) => {
   const metadata = parseItemMetadata(item?.metadata)
 
   return {
@@ -56,6 +56,7 @@ export const toMovieCard = (item, recommendation, index = 0) => {
       'Les informations détaillées ne sont pas encore disponibles pour ce contenu.',
     posterTone: posterTones[index % posterTones.length],
     item,
+    rating,
     recommendation,
   }
 }
