@@ -452,6 +452,8 @@ select:focus-visible {
   position: absolute;
   inset: 0;
   opacity: 0.94;
+  background-position: center;
+  background-size: cover;
 }
 
 .movie-card__content {

@@ -42,18 +42,24 @@ const toMatchPercent = (score) => {
 
 export const toMovieCard = (item, recommendation, index = 0, rating) => {
   const metadata = parseItemMetadata(item?.metadata)
+  const tmdb = metadata.tmdb ?? {}
 
   return {
     id: item?.id,
     title: item?.title ?? 'Titre inconnu',
     year: metadata.year ?? metadata.releaseYear ?? 'Année inconnue',
-    duration: metadata.duration ?? 'Durée inconnue',
+    duration: metadata.duration ?? (metadata.runtime ? `${metadata.runtime} min` : 'Durée inconnue'),
     genres: normalizeGenres(metadata, item?.type),
     match: recommendation ? toMatchPercent(recommendation.score) : 0,
     description:
       recommendation?.reason ??
+      metadata.overview ??
       metadata.description ??
       'Les informations détaillées ne sont pas encore disponibles pour ce contenu.',
+    posterUrl:
+      tmdb.posterPath && tmdb.imageBaseUrl
+        ? `${tmdb.imageBaseUrl}/w342${tmdb.posterPath}`
+        : undefined,
     posterTone: posterTones[index % posterTones.length],
     item,
     rating,

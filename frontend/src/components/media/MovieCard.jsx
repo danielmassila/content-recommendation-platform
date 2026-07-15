@@ -3,7 +3,11 @@ const MovieCard = ({ movie, compact = false }) => {
 
   return (
     <article className={`movie-card movie-card--${movie.posterTone} ${compact ? 'movie-card--compact' : ''}`}>
-      <div className="movie-card__poster" aria-hidden="true" />
+      <div
+        className="movie-card__poster"
+        style={movie.posterUrl ? { backgroundImage: `url(${movie.posterUrl})` } : undefined}
+        aria-hidden="true"
+      />
       <div className="movie-card__content">
         <span className="match">{badge}</span>
         <h3>{movie.title}</h3>
