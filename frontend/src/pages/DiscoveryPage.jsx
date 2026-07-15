@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import MovieCard from '../components/media/MovieCard'
 import MovieRow from '../components/media/MovieRow'
 import { Button, EmptyState, ErrorState, LoadingState, SelectField } from '../components/ui'
@@ -6,6 +7,7 @@ import { useMovieCatalog, useRecommendations } from '../hooks'
 const demoUserId = 1
 
 const DiscoveryPage = () => {
+  const [selectedGenre, setSelectedGenre] = useState('all')
   const { error, featuredPick, isEmpty, isLoading, recommendationRows, refresh } =
     useRecommendations(demoUserId)
   const {
@@ -14,7 +16,7 @@ const DiscoveryPage = () => {
     isEmpty: isCatalogEmpty,
     isLoading: isCatalogLoading,
     refresh: refreshCatalog,
-  } = useMovieCatalog({ limit: 20 })
+  } = useMovieCatalog({ genre: selectedGenre, limit: 20 })
 
   return (
     <section className="page page--discovery">
@@ -23,10 +25,23 @@ const DiscoveryPage = () => {
           <p className="eyebrow">Sélection du moment</p>
           <h1>Trouvons ta prochaine pépite</h1>
         </div>
-        <SelectField defaultValue="all" id="genre-filter" label="Genre">
+        <SelectField
+          id="genre-filter"
+          label="Genre"
+          value={selectedGenre}
+          onChange={(event) => setSelectedGenre(event.target.value)}
+        >
           <option value="all">Tous les genres</option>
-          <option value="drama">Drame</option>
-          <option value="thriller">Thriller</option>
+          <option value="Action">Action</option>
+          <option value="Adventure">Aventure</option>
+          <option value="Animation">Animation</option>
+          <option value="Comedy">Comédie</option>
+          <option value="Crime">Crime</option>
+          <option value="Drama">Drame</option>
+          <option value="Horror">Horreur</option>
+          <option value="Romance">Romance</option>
+          <option value="Sci-Fi">Science-fiction</option>
+          <option value="Thriller">Thriller</option>
         </SelectField>
       </div>
 
@@ -91,7 +106,7 @@ const DiscoveryPage = () => {
       ) : null}
 
       {isCatalogEmpty ? (
-        <EmptyState title="Le catalogue est vide pour le moment" />
+        <EmptyState title="Aucun contenu ne correspond à ce filtre" />
       ) : null}
 
       {!isCatalogLoading && !catalogError

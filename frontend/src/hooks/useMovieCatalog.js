@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { toMovieCard } from '../mappers'
 import { itemsApi } from '../services'
 
-export const useMovieCatalog = ({ limit = 50, enabled = true } = {}) => {
+export const useMovieCatalog = ({ genre = 'all', limit = 50, enabled = true } = {}) => {
   const [movies, setMovies] = useState([])
   const [isLoading, setIsLoading] = useState(enabled)
   const [error, setError] = useState(null)
@@ -51,18 +51,28 @@ export const useMovieCatalog = ({ limit = 50, enabled = true } = {}) => {
     }
   }, [loadCatalog, reloadKey])
 
+  const filteredMovies = useMemo(() => {
+    if (genre === 'all') {
+      return movies
+    }
+
+    return movies.filter((movie) =>
+      movie.genres.some((movieGenre) => movieGenre.toLowerCase() === genre.toLowerCase()),
+    )
+  }, [genre, movies])
+
   return {
     catalogRows: [
       {
         id: 'catalog',
         title: 'Catalogue',
-        items: movies,
+        items: filteredMovies,
       },
     ],
     error,
-    isEmpty: !isLoading && !error && movies.length === 0,
+    isEmpty: !isLoading && !error && filteredMovies.length === 0,
     isLoading,
-    movies,
+    movies: filteredMovies,
     refresh,
   }
 }
