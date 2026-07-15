@@ -1,0 +1,37 @@
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Tests / coverage
+.pytest_cache/
+.coverage*
+htmlcov/
+.tox/
+.nox/
+
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/
+
+# Git
+.git/
+
+# Logs / temp
+*.log
+tmp/
+.cache/
+
+# Datasets (mounted as volumes)
+data/
+datasets/
+*.csv
+*.parquet
+*.jsonl
