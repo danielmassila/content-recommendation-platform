@@ -19,9 +19,26 @@ src/
   data/         données temporaires de développement
   hooks/        hooks applicatifs à brancher progressivement
   pages/        pages principales de l'application
-  services/     accès API et intégration backend
+  services/     client API et endpoints backend
   styles/       tokens et fondations visuelles
 ```
+
+## Backend
+
+Le client API lit l'URL du backend dans `VITE_API_BASE_URL`.
+
+Créer un fichier `.env.local` si l'URL locale diffère de la valeur par défaut :
+
+```bash
+VITE_API_BASE_URL=http://localhost:8081
+```
+
+Les services sont organisés par ressource :
+
+- `itemsApi` pour `/api/v1/items`.
+- `usersApi` pour `/api/v1/users`.
+- `ratingsApi` pour `/api/v1/ratings`.
+- `recommendationsApi` pour `/api/v1/.../recommendations`.
 
 ## Hooks prévus
 
