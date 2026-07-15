@@ -148,7 +148,7 @@ button {
 .nav-link:focus-visible,
 .brand:focus-visible,
 .text-button:focus-visible,
-.preference-option:focus-visible,
+.radio-card:focus-within,
 input:focus-visible,
 select:focus-visible {
   outline: 3px solid var(--focus);
@@ -247,8 +247,7 @@ select:focus-visible {
   font-size: 1.6rem;
 }
 
-.auth-card label,
-.select-field {
+.field {
   display: grid;
   gap: 8px;
   color: var(--text-muted);
@@ -256,8 +255,8 @@ select:focus-visible {
   font-weight: 700;
 }
 
-.auth-card input,
-.select-field select {
+.field input,
+.field select {
   min-height: 44px;
   width: 100%;
   border: 1px solid var(--line);
@@ -288,7 +287,8 @@ select:focus-visible {
   margin: 28px 0;
 }
 
-.preference-option {
+.radio-card {
+  position: relative;
   display: grid;
   gap: 10px;
   min-height: 128px;
@@ -298,18 +298,26 @@ select:focus-visible {
   color: var(--text);
   background: var(--surface-soft);
   text-align: left;
+  cursor: pointer;
 }
 
-.preference-option:hover {
+.radio-card:hover,
+.radio-card:has(input:checked) {
   border-color: rgba(229, 82, 76, 0.58);
   background: var(--accent-soft);
 }
 
-.preference-option span {
+.radio-card input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.radio-card span {
   font-weight: 800;
 }
 
-.preference-option small {
+.radio-card small {
   color: var(--text-muted);
 }
 

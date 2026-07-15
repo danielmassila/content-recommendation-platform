@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { preferenceOptions } from '../data/movies'
-import Button from '../components/ui/Button'
+import { Button, RadioCard } from '../components/ui'
 
 const PreferencesPage = () => {
   const navigate = useNavigate()
@@ -12,10 +12,13 @@ const PreferencesPage = () => {
         <h1>Quel est ton genre préféré ?</h1>
         <div className="preference-grid">
           {preferenceOptions.map((option) => (
-            <button className="preference-option" key={option.id} type="button">
-              <span>{option.label}</span>
-              <small>{option.hint}</small>
-            </button>
+            <RadioCard
+              hint={option.hint}
+              key={option.id}
+              label={option.label}
+              name="favoriteGenre"
+              value={option.id}
+            />
           ))}
         </div>
         {/* TODO preferences: persister les réponses et enrichir la question suivante depuis le backend. */}

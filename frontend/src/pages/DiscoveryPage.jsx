@@ -1,6 +1,6 @@
 import MovieCard from '../components/media/MovieCard'
 import MovieRow from '../components/media/MovieRow'
-import { Button, EmptyState, ErrorState, LoadingState } from '../components/ui'
+import { Button, EmptyState, ErrorState, LoadingState, SelectField } from '../components/ui'
 import { useRecommendations } from '../hooks'
 
 const demoUserId = 1
@@ -16,14 +16,11 @@ const DiscoveryPage = () => {
           <p className="eyebrow">Sélection du moment</p>
           <h1>Trouvons ta prochaine pépite</h1>
         </div>
-        <label className="select-field">
-          Genre
-          <select defaultValue="all">
-            <option value="all">Tous les genres</option>
-            <option value="drama">Drame</option>
-            <option value="thriller">Thriller</option>
-          </select>
-        </label>
+        <SelectField defaultValue="all" id="genre-filter" label="Genre">
+          <option value="all">Tous les genres</option>
+          <option value="drama">Drame</option>
+          <option value="thriller">Thriller</option>
+        </SelectField>
       </div>
 
       {isLoading ? (
