@@ -1,9 +1,11 @@
 import { useNavigate } from 'react-router-dom'
 import { preferenceOptions } from '../data/movies'
 import { Button, RadioCard } from '../components/ui'
+import { usePreferences } from '../hooks'
 
 const PreferencesPage = () => {
   const navigate = useNavigate()
+  const { preferences, updatePreference } = usePreferences()
 
   return (
     <section className="page page--preferences">
@@ -13,15 +15,16 @@ const PreferencesPage = () => {
         <div className="preference-grid">
           {preferenceOptions.map((option) => (
             <RadioCard
+              checked={preferences.favoriteGenre === option.id}
               hint={option.hint}
               key={option.id}
               label={option.label}
               name="favoriteGenre"
+              onChange={() => updatePreference('favoriteGenre', option.id)}
               value={option.id}
             />
           ))}
         </div>
-        {/* TODO preferences: persister les réponses et enrichir la question suivante depuis le backend. */}
         <Button onClick={() => navigate('/discover')}>Je préfère...</Button>
       </div>
     </section>
