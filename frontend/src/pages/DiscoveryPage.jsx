@@ -1,13 +1,20 @@
 import MovieCard from '../components/media/MovieCard'
 import MovieRow from '../components/media/MovieRow'
 import { Button, EmptyState, ErrorState, LoadingState, SelectField } from '../components/ui'
-import { useRecommendations } from '../hooks'
+import { useMovieCatalog, useRecommendations } from '../hooks'
 
 const demoUserId = 1
 
 const DiscoveryPage = () => {
   const { error, featuredPick, isEmpty, isLoading, recommendationRows, refresh } =
     useRecommendations(demoUserId)
+  const {
+    catalogRows,
+    error: catalogError,
+    isEmpty: isCatalogEmpty,
+    isLoading: isCatalogLoading,
+    refresh: refreshCatalog,
+  } = useMovieCatalog({ limit: 20 })
 
   return (
     <section className="page page--discovery">
@@ -69,6 +76,27 @@ const DiscoveryPage = () => {
           ))}
         </>
       ) : null}
+
+      {isCatalogLoading ? (
+        <LoadingState title="Chargement du catalogue..." />
+      ) : null}
+
+      {catalogError ? (
+        <ErrorState
+          error={catalogError}
+          eyebrow="Catalogue indisponible"
+          onRetry={refreshCatalog}
+          title="Impossible de charger le catalogue"
+        />
+      ) : null}
+
+      {isCatalogEmpty ? (
+        <EmptyState title="Le catalogue est vide pour le moment" />
+      ) : null}
+
+      {!isCatalogLoading && !catalogError
+        ? catalogRows.map((row) => <MovieRow key={row.id} row={row} />)
+        : null}
     </section>
   )
 }
