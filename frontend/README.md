@@ -1,16 +1,52 @@
-# React + Vite
+# Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Interface React/Vite de l'application de recommandation de films.
 
-Currently, two official plugins are available:
+## Commandes
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+```bash
+npm install
+npm run dev
+npm run build
+npm run lint
+```
 
-## React Compiler
+## Structure
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```text
+src/
+  components/   composants UI réutilisables
+  data/         données temporaires de développement
+  hooks/        hooks applicatifs à brancher progressivement
+  pages/        pages principales de l'application
+  services/     accès API et intégration backend
+  styles/       tokens et fondations visuelles
+```
 
-## Expanding the ESLint configuration
+## Hooks prévus
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- `useAuth` : session utilisateur, connexion, déconnexion.
+- `useMovieCatalog` : catalogue, filtres, recherche.
+- `usePreferences` : préférences initiales et mise à jour.
+- `useRecommendations` : sélection du soir et recommandations personnalisées.
+- `useUserProfile` : profil, statistiques et notes récentes.
+
+Ces hooks sont volontairement non implémentés pour le moment. Ils servent de points d'entrée clairs pour brancher le backend sans mélanger la logique métier avec les pages.
+
+## Style
+
+Les couleurs, rayons, espacements et dimensions principales sont centralisés dans `src/styles/tokens.css`.
+
+Le fichier `src/index.css` doit surtout contenir les classes concrètes des composants et des pages. Quand le thème change, commencer par modifier les tokens.
+
+## Commits
+
+Utiliser des commits conventionnels en anglais, courts et explicites :
+
+```text
+feat: add app routing
+chore: add api client setup
+docs: document frontend structure
+```
+
+Garder les commits assez petits : une intention claire par commit.
