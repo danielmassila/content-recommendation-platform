@@ -7,8 +7,10 @@ import {
   useMemo,
   useState,
 } from 'react'
+import { authApi } from '../services/authApi'
+import { setApiAccessToken } from '../services/apiClient'
 
-const STORAGE_KEY = 'tonights-pick-session'
+const STORAGE_KEY = 'content-reco-session'
 
 const AuthContext = createContext(null)
 
@@ -16,51 +18,124 @@ const getInitials = (email) => {
   return email?.trim().slice(0, 1).toUpperCase() || '?'
 }
 
+const enrichUser = (user) => {
+  return {
+    ...user,
+    initials: getInitials(user.email),
+    name: user.email.split('@')[0],
+  }
+}
+
 const readStoredUser = () => {
   try {
     const storedValue = window.localStorage.getItem(STORAGE_KEY)
-    return storedValue ? JSON.parse(storedValue) : null
+    return storedValue ? JSON.parse(storedValue) : { accessToken: null, user: null }
   } catch {
-    return null
+    return { accessToken: null, user: null }
   }
 }
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(readStoredUser)
+  const [session, setSession] = useState(readStoredUser)
+  const [isLoading, setIsLoading] = useState(Boolean(session.accessToken))
+  const [error, setError] = useState(null)
+  const user = session.user ? enrichUser(session.user) : null
 
   useEffect(() => {
-    if (user) {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(user))
+    setApiAccessToken(session.accessToken)
+
+    if (session.accessToken && session.user) {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(session))
       return
     }
 
     window.localStorage.removeItem(STORAGE_KEY)
-  }, [user])
+  }, [session])
 
-  const signIn = useCallback(({ email }) => {
-    const nextUser = {
-      email,
-      id: 1,
-      initials: getInitials(email),
-      name: email.split('@')[0],
+  useEffect(() => {
+    let isActive = true
+
+    const refreshSession = async () => {
+      if (!session.accessToken) {
+        return
+      }
+
+      try {
+        const currentUser = await authApi.getCurrentUser()
+
+        if (isActive) {
+          setSession((currentSession) => ({
+            ...currentSession,
+            user: currentUser,
+          }))
+        }
+      } catch (refreshError) {
+        if (isActive) {
+          setSession({ accessToken: null, user: null })
+          setError(refreshError.message)
+        }
+      } finally {
+        if (isActive) {
+          setIsLoading(false)
+        }
+      }
     }
 
-    setUser(nextUser)
-    return nextUser
+    refreshSession()
+
+    return () => {
+      isActive = false
+    }
+  }, [session.accessToken])
+
+  const signIn = useCallback(async ({ email, password }) => {
+    setError(null)
+    setIsLoading(true)
+
+    try {
+      const nextSession = await authApi.login({ email, password })
+      setSession(nextSession)
+      return nextSession.user
+    } catch (signInError) {
+      setError(signInError.message)
+      throw signInError
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  const signUp = useCallback(async ({ email, password }) => {
+    setError(null)
+    setIsLoading(true)
+
+    try {
+      const nextSession = await authApi.register({ email, password })
+      setSession(nextSession)
+      return nextSession.user
+    } catch (signUpError) {
+      setError(signUpError.message)
+      throw signUpError
+    } finally {
+      setIsLoading(false)
+    }
   }, [])
 
   const signOut = useCallback(() => {
-    setUser(null)
+    setError(null)
+    setSession({ accessToken: null, user: null })
   }, [])
 
   const value = useMemo(
     () => ({
+      error,
       isAuthenticated: Boolean(user),
+      isLoading,
       signIn,
       signOut,
+      signUp,
       user,
     }),
-    [signIn, signOut, user],
+    [error, isLoading, signIn, signOut, signUp, user],
   )
 
   return createElement(AuthContext, { value }, children)
