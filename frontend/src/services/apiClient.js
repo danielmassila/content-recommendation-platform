@@ -1,5 +1,11 @@
 const DEFAULT_API_BASE_URL = 'http://localhost:8081'
 
+let accessToken = null
+
+export const setApiAccessToken = (token) => {
+  accessToken = token
+}
+
 const getApiBaseUrl = () => {
   return import.meta.env.VITE_API_BASE_URL ?? DEFAULT_API_BASE_URL
 }
@@ -43,6 +49,7 @@ const request = async (path, { body, query, ...options } = {}) => {
     headers: {
       Accept: 'application/json',
       ...(body ? { 'Content-Type': 'application/json' } : {}),
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
       ...options.headers,
     },
     body: body ? JSON.stringify(body) : undefined,
