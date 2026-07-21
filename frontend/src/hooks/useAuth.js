@@ -94,6 +94,7 @@ export const AuthProvider = ({ children }) => {
 
     try {
       const nextSession = await authApi.login({ email, password })
+      setApiAccessToken(nextSession.accessToken)
       setSession(nextSession)
       return nextSession.user
     } catch (signInError) {
@@ -110,6 +111,7 @@ export const AuthProvider = ({ children }) => {
 
     try {
       const nextSession = await authApi.register({ email, password })
+      setApiAccessToken(nextSession.accessToken)
       setSession(nextSession)
       return nextSession.user
     } catch (signUpError) {
@@ -122,6 +124,7 @@ export const AuthProvider = ({ children }) => {
 
   const signOut = useCallback(() => {
     setError(null)
+    setApiAccessToken(null)
     setSession({ accessToken: null, user: null })
   }, [])
 
