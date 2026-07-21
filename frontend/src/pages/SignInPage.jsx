@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { Button, TextField } from '../components/ui'
 import { useAuth } from '../hooks'
 
 const SignInPage = () => {
+  const location = useLocation()
   const navigate = useNavigate()
   const { error: authError, isLoading, signIn, signUp } = useAuth()
   const [mode, setMode] = useState('login')
@@ -12,6 +13,7 @@ const SignInPage = () => {
   const [formError, setFormError] = useState(null)
 
   const isRegisterMode = mode === 'register'
+  const redirectPath = location.state?.from?.pathname ?? '/discover'
 
   const handleSubmit = async (event) => {
     event.preventDefault()
@@ -20,7 +22,7 @@ const SignInPage = () => {
     try {
       const authAction = isRegisterMode ? signUp : signIn
       await authAction({ email, password })
-      navigate('/discover')
+      navigate(redirectPath, { replace: true })
     } catch (error) {
       setFormError(error.message)
     }
