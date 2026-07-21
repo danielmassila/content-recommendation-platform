@@ -8,11 +8,13 @@ import com.example.reco.repositories.ItemRepository;
 import com.example.reco.repositories.RatingRepository;
 import com.example.reco.repositories.UserRepository;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 
 @Component
+@ConditionalOnProperty(name = "app.smoke-test.enabled", havingValue = "true")
 public class SmokeTestRunner implements CommandLineRunner {
 
     private final UserRepository users;
