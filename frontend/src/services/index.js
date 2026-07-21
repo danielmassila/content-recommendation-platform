@@ -1,4 +1,5 @@
 export { apiClient } from './apiClient'
+export { authApi } from './authApi'
 export { itemsApi } from './itemsApi'
 export { ratingsApi } from './ratingsApi'
 export { recommendationsApi } from './recommendationsApi'
