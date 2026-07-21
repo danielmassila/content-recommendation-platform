@@ -11,6 +11,7 @@
   --color-accent-soft: rgba(229, 82, 76, 0.16);
   --color-gold: #d7b46a;
   --color-success: #6fc08c;
+  --color-danger: #ff8a80;
   --color-focus: #f1cf7a;
 
   --shadow-page: 0 22px 80px rgba(0, 0, 0, 0.45);
@@ -47,6 +48,7 @@
   --accent-soft: var(--color-accent-soft);
   --gold: var(--color-gold);
   --green: var(--color-success);
+  --danger: var(--color-danger);
   --focus: var(--color-focus);
   --shadow: var(--shadow-page);
   --max-page: var(--layout-page-max);

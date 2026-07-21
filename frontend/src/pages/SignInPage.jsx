@@ -5,20 +5,51 @@ import { useAuth } from '../hooks'
 
 const SignInPage = () => {
   const navigate = useNavigate()
-  const { signIn } = useAuth()
+  const { error: authError, isLoading, signIn, signUp } = useAuth()
+  const [mode, setMode] = useState('login')
   const [email, setEmail] = useState('daniel@example.fr')
   const [password, setPassword] = useState('')
+  const [formError, setFormError] = useState(null)
 
-  const handleSubmit = (event) => {
+  const isRegisterMode = mode === 'register'
+
+  const handleSubmit = async (event) => {
     event.preventDefault()
-    signIn({ email, password })
-    navigate('/discover')
+    setFormError(null)
+
+    try {
+      const authAction = isRegisterMode ? signUp : signIn
+      await authAction({ email, password })
+      navigate('/discover')
+    } catch (error) {
+      setFormError(error.message)
+    }
   }
 
   return (
     <section className="page page--centered">
       <form className="auth-card" onSubmit={handleSubmit}>
-        <h1>Connexion</h1>
+        <div className="auth-card__header">
+          <h1>{isRegisterMode ? 'Créer un compte' : 'Connexion'}</h1>
+          <div className="auth-card__switcher" aria-label="Mode authentification">
+            <button
+              aria-pressed={!isRegisterMode}
+              className="auth-card__switch"
+              onClick={() => setMode('login')}
+              type="button"
+            >
+              Connexion
+            </button>
+            <button
+              aria-pressed={isRegisterMode}
+              className="auth-card__switch"
+              onClick={() => setMode('register')}
+              type="button"
+            >
+              Inscription
+            </button>
+          </div>
+        </div>
         <TextField
           autoComplete="email"
           id="email"
@@ -37,13 +68,14 @@ const SignInPage = () => {
           type="password"
           value={password}
         />
-        <Button className="auth-card__submit">Se connecter</Button>
-        <p className="auth-card__hint">
-          Connexion temporaire côté front. Le backend auth pourra remplacer ce flux plus tard.
-        </p>
-        <button className="text-button" type="button">
-          Mot de passe oublié
-        </button>
+        {(formError || authError) && (
+          <p className="form-error" role="alert">
+            {formError || authError}
+          </p>
+        )}
+        <Button className="auth-card__submit" disabled={isLoading} type="submit">
+          {isLoading ? 'Chargement...' : isRegisterMode ? 'Créer le compte' : 'Se connecter'}
+        </Button>
       </form>
     </section>
   )

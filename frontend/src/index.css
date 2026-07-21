@@ -243,8 +243,38 @@ select:focus-visible {
   padding: 32px;
 }
 
+.auth-card__header {
+  display: grid;
+  gap: 16px;
+}
+
 .auth-card h1 {
   font-size: 1.6rem;
+}
+
+.auth-card__switcher {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-height: 42px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
+}
+
+.auth-card__switch {
+  border: 0;
+  color: var(--text-muted);
+  background: transparent;
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.auth-card__switch[aria-pressed='true'] {
+  color: var(--text);
+  background: rgba(232, 234, 238, 0.1);
 }
 
 .field {
@@ -268,6 +298,18 @@ select:focus-visible {
 
 .auth-card__submit {
   margin-top: 6px;
+}
+
+.button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.form-error {
+  margin: 0;
+  color: var(--danger);
+  font-size: 0.86rem;
+  line-height: 1.45;
 }
 
 .auth-card__hint {
