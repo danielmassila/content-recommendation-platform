@@ -27,8 +27,9 @@ data ingestion → storage → computation → API exposure.
 
 The system is composed of:
 
-- **Java (Spring Boot)** REST API
-- **Python recommendation engine**
+- **`backend/`** Java (Spring Boot) REST API
+- **`frontend/`** React interface
+- **`reco-ml/`** Python recommendation engine and data jobs
 - **PostgreSQL** shared database
 - **Docker Compose** for orchestration
 
@@ -55,7 +56,7 @@ Full explanation:
 
 ```bash
 git clone <repo>
-cd reco
+cd content-recommendation-platform
 make demo
 ```
 

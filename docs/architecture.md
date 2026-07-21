@@ -6,8 +6,9 @@ This document describes both the macro-level system design and the internal back
 
 The system is composed of four main components:
 
-- Spring Boot REST API (Java)
-- Python Recommendation Engine
+- `backend/` - Spring Boot REST API (Java)
+- `frontend/` - React interface
+- `reco-ml/` - Python recommendation engine and data jobs
 - PostgreSQL Database
 - Docker Compose orchestration
 
@@ -34,7 +35,7 @@ scalability.
 
 These limitations come from the simplicity of v1 and will be addressed in future versions.
 
-## 3 - Backend Layered achitecture (Spring Boot)
+## 3 - Backend layered architecture (Spring Boot)
 
 The Java backend follows a classical layered architecture:
 
@@ -99,11 +100,9 @@ Services:
 
 Environment variables:
 
-- DB_HOST
-- DB_PORT
-- DB_NAME
-- DB_USER
-- DB_PASSWORD
+- POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD for the database container
+- DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD inside the Python jobs
+- TMDB_API_KEY for optional metadata enrichment
 
 Flyway handles database migrations.
 

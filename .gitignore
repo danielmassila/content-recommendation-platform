@@ -65,3 +65,5 @@ datasets/
 data/
 *.parquet
 *.jsonl
+
+docs/.Rhistory
