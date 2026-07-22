@@ -28,11 +28,16 @@ public class AuthService {
 
     public AuthResponse register(RegisterRequest request) {
         String email = normalizeEmail(request.getEmail());
+        String username = normalizeUsername(request.getUsername());
         if (userRepository.existsByEmail(email)) {
             throw new ConflictException("Email already taken: " + email);
         }
 
-        User user = new User(email, passwordEncoder.encode(request.getPassword()));
+        if (userRepository.existsByUsername(username)) {
+            throw new ConflictException("Username already taken: " + username);
+        }
+
+        User user = new User(email, username, passwordEncoder.encode(request.getPassword()));
         User savedUser = userRepository.save(user);
         return toAuthResponse(savedUser);
     }
@@ -51,17 +56,27 @@ public class AuthService {
     }
 
     public UserResponse toUserResponse(AuthenticatedUser user) {
-        return new UserResponse(user.id(), user.email());
+        User loadedUser = userRepository.findById(user.id())
+                .orElseThrow(() -> new BadRequestException("Authenticated user not found"));
+        return toUserResponse(loadedUser);
     }
 
     private AuthResponse toAuthResponse(User user) {
         return new AuthResponse(
                 jwtService.createToken(user),
-                new UserResponse(user.getId(), user.getEmail())
+                toUserResponse(user)
         );
+    }
+
+    private UserResponse toUserResponse(User user) {
+        return new UserResponse(user.getId(), user.getEmail(), user.getUsername());
     }
 
     private String normalizeEmail(String email) {
         return email.trim().toLowerCase();
+    }
+
+    private String normalizeUsername(String username) {
+        return username.trim();
     }
 }

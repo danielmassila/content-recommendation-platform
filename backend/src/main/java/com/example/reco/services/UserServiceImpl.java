@@ -61,7 +61,8 @@ public class UserServiceImpl implements UserService {
     private UserResponse toResponse(User user) {
         return new UserResponse(
                 user.getId(),
-                user.getEmail()
+                user.getEmail(),
+                user.getUsername()
         );
     }
 

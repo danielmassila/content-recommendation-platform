@@ -11,6 +11,10 @@ public class RegisterRequest {
     @Size(max = 120, message = "email must be at most 120 characters")
     private String email;
 
+    @NotBlank(message = "username is required")
+    @Size(min = 2, max = 80, message = "username must be between 2 and 80 characters")
+    private String username;
+
     @NotBlank(message = "password is required")
     @Size(min = 8, max = 120, message = "password must be between 8 and 120 characters")
     private String password;
@@ -21,6 +25,14 @@ public class RegisterRequest {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
     }
 
     public String getPassword() {
