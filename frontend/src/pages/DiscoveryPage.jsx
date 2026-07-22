@@ -21,7 +21,13 @@ const DiscoveryPage = () => {
   } = useMovieCatalog({ genre: selectedGenre, limit: 20 })
 
   const handleRateMovie = async (movie, grade) => {
-    const rating = await rateMovie(movie, grade)
+    let rating = null
+    try {
+      rating = await rateMovie(movie, grade)
+    } catch {
+      return
+    }
+
     if (!rating) {
       return
     }

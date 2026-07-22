@@ -27,10 +27,13 @@ const MovieDetailsModal = ({ isRatingSaving = false, movie, onClose, onRate, rat
 
   const vote = formatVote(movie)
   const currentRating = movie.rating?.rating
-  const visualStyle =
-    movie.backdropUrl || movie.posterUrl
-      ? { backgroundImage: `url(${movie.backdropUrl ?? movie.posterUrl})` }
-      : undefined
+  const visualUrl = movie.posterUrl ?? movie.backdropUrl
+  const visualClassName = [
+    `movie-modal__visual movie-card--${movie.posterTone}`,
+    movie.posterUrl ? 'movie-modal__visual--poster' : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
 
   return (
     <div className="movie-modal" role="presentation" onMouseDown={onClose}>
@@ -49,11 +52,9 @@ const MovieDetailsModal = ({ isRatingSaving = false, movie, onClose, onRate, rat
         >
           ×
         </button>
-        <div
-          className={`movie-modal__visual movie-card--${movie.posterTone}`}
-          style={visualStyle}
-          aria-hidden="true"
-        />
+        <div className={visualClassName} aria-hidden="true">
+          {visualUrl ? <img alt="" className="movie-modal__image" src={visualUrl} /> : null}
+        </div>
         <div className="movie-modal__content">
           <div className="movie-modal__header">
             <h2 id="movie-modal-title">{movie.title}</h2>
