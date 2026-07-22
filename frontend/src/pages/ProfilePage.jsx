@@ -46,8 +46,11 @@ const ProfilePage = () => {
         {isEmpty ? <EmptyState title="Aucune note récente pour ce compte" /> : null}
 
         {!isLoading && !error ? (
-          <section className="rating-history" aria-labelledby="rating-history-title">
-            <h2 id="rating-history-title">Notes récentes</h2>
+          <details className="rating-history" open>
+            <summary>
+              <span>Notes récentes</span>
+              <strong>{ratedMovieRows[0]?.items.length ?? 0}</strong>
+            </summary>
             <div className="rating-history__list">
               {ratedMovieRows[0]?.items.map((movie) => {
                 const rating = Number(movie.rating?.rating ?? 0)
@@ -65,7 +68,7 @@ const ProfilePage = () => {
                 )
               })}
             </div>
-          </section>
+          </details>
         ) : null}
       </div>
     </section>

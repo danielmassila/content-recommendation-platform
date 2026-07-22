@@ -78,13 +78,20 @@ export const useUserProfile = (userId, { ratingsLimit = 10, enabled = Boolean(us
 
   const stats = useMemo(() => {
     const lastRating = ratedMovies[0]?.rating?.rating
+    const ratingValues = ratedMovies
+      .map((movie) => movie.rating?.rating)
+      .filter((rating) => rating !== undefined && rating !== null)
+    const averageRating =
+      ratingValues.length > 0
+        ? ratingValues.reduce((total, rating) => total + Number(rating), 0) / ratingValues.length
+        : null
 
     return [
       { label: 'Films notés', value: ratedMovies.length.toString() },
-      { label: 'Profil', value: user ? getInitials(user.email) : '-' },
+      { label: 'Note moyenne', value: formatRating(averageRating) },
       { label: 'Dernière note', value: formatRating(lastRating) },
     ]
-  }, [ratedMovies, user])
+  }, [ratedMovies])
 
   return {
     error,
