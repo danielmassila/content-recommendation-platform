@@ -22,7 +22,7 @@ const enrichUser = (user) => {
   return {
     ...user,
     initials: getInitials(user.email),
-    name: user.email.split('@')[0],
+    name: user.username || user.email.split('@')[0],
   }
 }
 
@@ -105,12 +105,12 @@ export const AuthProvider = ({ children }) => {
     }
   }, [])
 
-  const signUp = useCallback(async ({ email, password }) => {
+  const signUp = useCallback(async ({ email, password, username }) => {
     setError(null)
     setIsLoading(true)
 
     try {
-      const nextSession = await authApi.register({ email, password })
+      const nextSession = await authApi.register({ email, password, username })
       setApiAccessToken(nextSession.accessToken)
       setSession(nextSession)
       return nextSession.user

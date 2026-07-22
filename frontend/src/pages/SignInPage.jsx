@@ -8,6 +8,7 @@ const SignInPage = () => {
   const navigate = useNavigate()
   const { error: authError, isLoading, signIn, signUp } = useAuth()
   const [mode, setMode] = useState('login')
+  const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [formError, setFormError] = useState(null)
@@ -21,7 +22,7 @@ const SignInPage = () => {
 
     try {
       const authAction = isRegisterMode ? signUp : signIn
-      await authAction({ email, password })
+      await authAction({ email, password, username })
       navigate(redirectPath, { replace: true })
     } catch (error) {
       setFormError(error.message)
@@ -52,6 +53,17 @@ const SignInPage = () => {
             </button>
           </div>
         </div>
+        {isRegisterMode ? (
+          <TextField
+            autoComplete="username"
+            id="username"
+            label="Nom d'utilisateur"
+            onChange={(event) => setUsername(event.target.value)}
+            placeholder="daniel"
+            type="text"
+            value={username}
+          />
+        ) : null}
         <TextField
           autoComplete="email"
           id="email"

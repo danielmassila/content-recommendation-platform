@@ -11,8 +11,8 @@ const ProfilePage = () => {
     <section className="page page--profile">
       <aside className="profile-card">
         <span className="profile-avatar">{initials}</span>
-        <h1>{user?.email ?? 'Utilisateur'}</h1>
-        <p>Compte #{currentUser?.id}</p>
+        <h1>{user?.username ?? currentUser?.name ?? 'Utilisateur'}</h1>
+        <p>{user?.email ?? `Compte #${currentUser?.id}`}</p>
       </aside>
 
       <div className="profile-content">
