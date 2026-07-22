@@ -7,7 +7,7 @@ import { useAuth, useMovieCatalog, useRecommendations } from '../hooks'
 const DiscoveryPage = () => {
   const { user } = useAuth()
   const [selectedGenre, setSelectedGenre] = useState('all')
-  const { error, featuredPick, isEmpty, isLoading, recommendationRows, refresh } =
+  const { error, featuredPick, isEmpty, isLoading, isRecomputing, recommendationRows, recompute, refresh } =
     useRecommendations(user?.id)
   const {
     catalogRows,
@@ -58,7 +58,17 @@ const DiscoveryPage = () => {
       ) : null}
 
       {isEmpty ? (
-        <EmptyState title="Pas encore de recommandation pour ce compte" />
+        <section className="recommendation-note recommendation-note--empty">
+          <h2>Pas encore de recommandation pour ce compte</h2>
+          <p>
+            Génère une première sélection à partir des données disponibles, puis affine-la en notant quelques films.
+          </p>
+          <div className="recommendation-note__actions">
+            <Button disabled={isRecomputing} onClick={recompute}>
+              {isRecomputing ? 'Génération...' : 'Générer mes recommandations'}
+            </Button>
+          </div>
+        </section>
       ) : null}
 
       {featuredPick ? (

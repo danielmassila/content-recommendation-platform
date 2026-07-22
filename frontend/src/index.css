@@ -636,6 +636,16 @@ select:focus-visible {
   padding: 22px;
 }
 
+.recommendation-note--empty {
+  gap: 14px;
+}
+
+.recommendation-note__actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
 @media (max-width: 860px) {
   .topbar {
     grid-template-columns: 1fr auto;
