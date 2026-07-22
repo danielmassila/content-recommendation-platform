@@ -84,9 +84,15 @@ const MovieDetailsModal = ({ isRatingSaving = false, movie, onClose, onRate, rat
             <div>
               <h3 id="movie-rating-title">Ta note</h3>
               <p>
-                {currentRating
-                  ? `Ta note actuelle : ${currentRating}/5. Tu peux la modifier.`
-                  : 'Note ce film pour améliorer tes recommandations.'}
+                {currentRating ? (
+                  <>
+                    Ta note actuelle : {currentRating}/5.
+                    <br />
+                    Tu peux la modifier.
+                  </>
+                ) : (
+                  'Note ce film pour améliorer tes recommandations.'
+                )}
               </p>
             </div>
             <div className="rating-picker" aria-label="Noter le film">
