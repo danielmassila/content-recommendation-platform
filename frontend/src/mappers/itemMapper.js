@@ -60,6 +60,15 @@ export const toMovieCard = (item, recommendation, index = 0, rating) => {
       tmdb.posterPath && tmdb.imageBaseUrl
         ? `${tmdb.imageBaseUrl}/w342${tmdb.posterPath}`
         : undefined,
+    backdropUrl:
+      tmdb.backdropPath && tmdb.imageBaseUrl
+        ? `${tmdb.imageBaseUrl}/w780${tmdb.backdropPath}`
+        : undefined,
+    originalLanguage: metadata.originalLanguage,
+    originalTitle: metadata.originalTitle,
+    popularity: tmdb.popularity,
+    voteAverage: tmdb.voteAverage,
+    voteCount: tmdb.voteCount,
     posterTone: posterTones[index % posterTones.length],
     item,
     rating,

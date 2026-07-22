@@ -1,8 +1,13 @@
-const MovieCard = ({ movie, compact = false }) => {
+const MovieCard = ({ movie, compact = false, onSelect }) => {
   const badge = movie.rating ? `${movie.rating.rating}/5` : `${movie.match}% pertinent`
+  const Component = onSelect ? 'button' : 'article'
 
   return (
-    <article className={`movie-card movie-card--${movie.posterTone} ${compact ? 'movie-card--compact' : ''}`}>
+    <Component
+      className={`movie-card movie-card--${movie.posterTone} ${compact ? 'movie-card--compact' : ''}`.trim()}
+      onClick={onSelect ? () => onSelect(movie) : undefined}
+      type={Component === 'button' ? 'button' : undefined}
+    >
       <div
         className="movie-card__poster"
         style={movie.posterUrl ? { backgroundImage: `url(${movie.posterUrl})` } : undefined}
@@ -15,7 +20,7 @@ const MovieCard = ({ movie, compact = false }) => {
           {movie.year} · {movie.genres.join(' / ')}
         </p>
       </div>
-    </article>
+    </Component>
   )
 }
 

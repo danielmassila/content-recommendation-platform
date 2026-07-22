@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import MovieCard from '../components/media/MovieCard'
+import MovieDetailsModal from '../components/media/MovieDetailsModal'
 import MovieRow from '../components/media/MovieRow'
 import { Button, EmptyState, ErrorState, LoadingState, SelectField } from '../components/ui'
 import { useAuth, useMovieCatalog, useRecommendations } from '../hooks'
@@ -7,6 +8,7 @@ import { useAuth, useMovieCatalog, useRecommendations } from '../hooks'
 const DiscoveryPage = () => {
   const { user } = useAuth()
   const [selectedGenre, setSelectedGenre] = useState('all')
+  const [selectedMovie, setSelectedMovie] = useState(null)
   const { error, featuredPick, isEmpty, isLoading, isRecomputing, recommendationRows, recompute, refresh } =
     useRecommendations(user?.id)
   const {
@@ -84,15 +86,15 @@ const DiscoveryPage = () => {
                 <span>{featuredPick.genres.join(' / ')}</span>
               </div>
               <div className="featured-pick__actions">
-                <Button>Détails</Button>
+                <Button onClick={() => setSelectedMovie(featuredPick)}>Détails</Button>
                 <Button variant="secondary">Noter</Button>
               </div>
             </div>
-            <MovieCard movie={featuredPick} compact />
+            <MovieCard movie={featuredPick} compact onSelect={setSelectedMovie} />
           </section>
 
           {recommendationRows.map((row) => (
-            <MovieRow key={row.id} row={row} />
+            <MovieRow key={row.id} onMovieSelect={setSelectedMovie} row={row} />
           ))}
         </>
       ) : null}
@@ -115,8 +117,12 @@ const DiscoveryPage = () => {
       ) : null}
 
       {!isCatalogLoading && !catalogError
-        ? catalogRows.map((row) => <MovieRow key={row.id} row={row} />)
+        ? catalogRows.map((row) => (
+            <MovieRow key={row.id} onMovieSelect={setSelectedMovie} row={row} />
+          ))
         : null}
+
+      <MovieDetailsModal movie={selectedMovie} onClose={() => setSelectedMovie(null)} />
     </section>
   )
 }
