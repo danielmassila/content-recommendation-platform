@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { toMovieCard } from '../mappers'
-import { itemsApi, recommendationsApi } from '../services'
+import { getLatestRatingsByItemId, toMovieCard } from '../mappers'
+import { itemsApi, ratingsApi, recommendationsApi } from '../services'
 
 export const useRecommendations = (
   userId,
@@ -12,13 +12,13 @@ export const useRecommendations = (
   const [error, setError] = useState(null)
   const [reloadKey, setReloadKey] = useState(0)
 
-  const mapRecommendations = useCallback(async (recommendations) => {
+  const mapRecommendations = useCallback(async (recommendations, ratingsByItemId) => {
     return Promise.all(
       [...recommendations]
         .sort((a, b) => a.rank - b.rank)
         .map(async (recommendation, index) => {
           const item = await itemsApi.getItemById(recommendation.itemId)
-          return toMovieCard(item, recommendation, index)
+          return toMovieCard(item, recommendation, index, ratingsByItemId.get(item.id))
         }),
     )
   }, [])
@@ -32,13 +32,17 @@ export const useRecommendations = (
     setError(null)
 
     try {
-      const recommendations = await recommendationsApi.getUserRecommendations(userId, {
-        limit,
-        includeReason,
-        algo,
-      })
+      const [recommendations, ratings] = await Promise.all([
+        recommendationsApi.getUserRecommendations(userId, {
+          limit,
+          includeReason,
+          algo,
+        }),
+        ratingsApi.getUserRatings(userId, { limit: 500 }),
+      ])
+      const ratingsByItemId = getLatestRatingsByItemId(ratings)
 
-      const moviesWithItems = await mapRecommendations(recommendations)
+      const moviesWithItems = await mapRecommendations(recommendations, ratingsByItemId)
 
       if (shouldUpdate()) {
         setMovies(moviesWithItems)
@@ -64,12 +68,16 @@ export const useRecommendations = (
     setError(null)
 
     try {
-      const recommendations = await recommendationsApi.recomputeUserRecommendations(userId, {
-        limit,
-        includeReason,
-        algo,
-      })
-      const moviesWithItems = await mapRecommendations(recommendations)
+      const [recommendations, ratings] = await Promise.all([
+        recommendationsApi.recomputeUserRecommendations(userId, {
+          limit,
+          includeReason,
+          algo,
+        }),
+        ratingsApi.getUserRatings(userId, { limit: 500 }),
+      ])
+      const ratingsByItemId = getLatestRatingsByItemId(ratings)
+      const moviesWithItems = await mapRecommendations(recommendations, ratingsByItemId)
       setMovies(moviesWithItems)
     } catch (caughtError) {
       setError(caughtError)

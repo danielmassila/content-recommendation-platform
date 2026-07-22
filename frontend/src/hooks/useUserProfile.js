@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { toMovieCard } from '../mappers'
+import { getLatestRatingsByItemId, toMovieCard } from '../mappers'
 import { itemsApi, ratingsApi, usersApi } from '../services'
 
 const getInitials = (email) => {
@@ -12,22 +12,6 @@ const formatRating = (rating) => {
   }
 
   return Number(rating).toFixed(1).replace('.0', '')
-}
-
-const getLatestRatingsByItem = (ratings) => {
-  const ratingsByItem = new Map()
-
-  ratings.forEach((rating) => {
-    const currentRating = ratingsByItem.get(rating.itemId)
-    const currentDate = currentRating ? new Date(currentRating.createdAt).getTime() : 0
-    const nextDate = rating.createdAt ? new Date(rating.createdAt).getTime() : 0
-
-    if (!currentRating || nextDate >= currentDate) {
-      ratingsByItem.set(rating.itemId, rating)
-    }
-  })
-
-  return [...ratingsByItem.values()]
 }
 
 export const useUserProfile = (userId, { ratingsLimit = 10, enabled = Boolean(userId) } = {}) => {
@@ -50,7 +34,7 @@ export const useUserProfile = (userId, { ratingsLimit = 10, enabled = Boolean(us
         usersApi.getUserById(userId),
         ratingsApi.getUserRatings(userId, { limit: ratingsLimit }),
       ])
-      const uniqueRatings = getLatestRatingsByItem(ratings)
+      const uniqueRatings = [...getLatestRatingsByItemId(ratings).values()]
 
       const movies = await Promise.all(
         uniqueRatings.map(async (rating, index) => {

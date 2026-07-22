@@ -6,6 +6,10 @@ export const useMovieRating = (userId) => {
   const [error, setError] = useState(null)
   const [lastRating, setLastRating] = useState(null)
 
+  const clearError = useCallback(() => {
+    setError(null)
+  }, [])
+
   const rateMovie = useCallback(async (movie, grade) => {
     if (!userId || !movie?.id) {
       return null
@@ -15,7 +19,9 @@ export const useMovieRating = (userId) => {
     setError(null)
 
     try {
-      const rating = await ratingsApi.rateItem(movie.id, { userId, grade })
+      const rating = movie.rating?.id
+        ? await ratingsApi.updateRating(movie.rating.id, grade)
+        : await ratingsApi.rateItem(movie.id, { userId, grade })
       setLastRating({ movieId: movie.id, rating })
       return rating
     } catch (caughtError) {
@@ -27,6 +33,7 @@ export const useMovieRating = (userId) => {
   }, [userId])
 
   return {
+    clearError,
     error,
     isSaving,
     lastRating,

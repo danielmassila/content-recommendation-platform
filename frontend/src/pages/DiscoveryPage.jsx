@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import MovieCard from '../components/media/MovieCard'
 import MovieDetailsModal from '../components/media/MovieDetailsModal'
 import MovieRow from '../components/media/MovieRow'
@@ -9,7 +9,12 @@ const DiscoveryPage = () => {
   const { user } = useAuth()
   const [selectedGenre, setSelectedGenre] = useState('all')
   const [selectedMovie, setSelectedMovie] = useState(null)
-  const { error: ratingError, isSaving: isRatingSaving, rateMovie } = useMovieRating(user?.id)
+  const {
+    clearError: clearRatingError,
+    error: ratingError,
+    isSaving: isRatingSaving,
+    rateMovie,
+  } = useMovieRating(user?.id)
   const { error, featuredPick, isEmpty, isLoading, isRecomputing, recommendationRows, recompute, refresh } =
     useRecommendations(user?.id)
   const {
@@ -18,7 +23,11 @@ const DiscoveryPage = () => {
     isEmpty: isCatalogEmpty,
     isLoading: isCatalogLoading,
     refresh: refreshCatalog,
-  } = useMovieCatalog({ genre: selectedGenre, limit: 20 })
+  } = useMovieCatalog({ genre: selectedGenre, limit: 20, userId: user?.id })
+
+  useEffect(() => {
+    clearRatingError()
+  }, [clearRatingError, selectedMovie?.id])
 
   const handleRateMovie = async (movie, grade) => {
     let rating = null

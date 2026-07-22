@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { toMovieCard } from '../mappers'
-import { itemsApi } from '../services'
+import { getLatestRatingsByItemId, toMovieCard } from '../mappers'
+import { itemsApi, ratingsApi } from '../services'
 
-export const useMovieCatalog = ({ genre = 'all', limit = 50, enabled = true } = {}) => {
+export const useMovieCatalog = ({ genre = 'all', limit = 50, userId, enabled = true } = {}) => {
   const [movies, setMovies] = useState([])
   const [isLoading, setIsLoading] = useState(enabled)
   const [error, setError] = useState(null)
@@ -17,8 +17,14 @@ export const useMovieCatalog = ({ genre = 'all', limit = 50, enabled = true } = 
     setError(null)
 
     try {
-      const items = await itemsApi.getItems({ limit })
-      const mappedMovies = items.map((item, index) => toMovieCard(item, null, index))
+      const [items, ratings] = await Promise.all([
+        itemsApi.getItems({ limit }),
+        userId ? ratingsApi.getUserRatings(userId, { limit: 500 }) : Promise.resolve([]),
+      ])
+      const ratingsByItemId = getLatestRatingsByItemId(ratings)
+      const mappedMovies = items.map((item, index) =>
+        toMovieCard(item, null, index, ratingsByItemId.get(item.id)),
+      )
 
       if (shouldUpdate()) {
         setMovies(mappedMovies)
@@ -33,7 +39,7 @@ export const useMovieCatalog = ({ genre = 'all', limit = 50, enabled = true } = 
         setIsLoading(false)
       }
     }
-  }, [enabled, limit])
+  }, [enabled, limit, userId])
 
   const refresh = useCallback(() => {
     setReloadKey((currentKey) => currentKey + 1)

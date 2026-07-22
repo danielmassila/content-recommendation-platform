@@ -685,14 +685,26 @@ button.movie-card:focus-visible {
 .movie-modal__dialog {
   position: relative;
   display: grid;
-  grid-template-rows: 3fr 2fr;
+  grid-template-rows: minmax(220px, min(42svh, 420px)) auto;
   width: min(100%, 780px);
-  height: min(700px, calc(100svh - 32px));
+  height: auto;
+  max-height: calc(100svh - 32px);
   overflow: hidden;
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
   background: var(--surface);
   box-shadow: var(--shadow);
+}
+
+.movie-modal__dialog--no-visual {
+  grid-template-rows: auto;
+  height: auto;
+  max-height: calc(100svh - 32px);
+}
+
+.movie-modal__dialog--no-visual .movie-modal__content {
+  gap: 18px;
+  padding: clamp(28px, 5vw, 48px);
 }
 
 .movie-modal__close {
@@ -758,7 +770,7 @@ button.movie-card:focus-visible {
   display: grid;
   gap: 12px;
   align-content: start;
-  overflow: hidden;
+  overflow: visible;
   padding: clamp(16px, 3vw, 24px);
 }
 
@@ -786,14 +798,21 @@ button.movie-card:focus-visible {
   -webkit-line-clamp: 2;
 }
 
+.movie-modal__rating .form-error {
+  display: block;
+  margin-top: 4px;
+  overflow: visible;
+  -webkit-line-clamp: unset;
+}
+
 .movie-modal__rating {
   display: grid;
   justify-self: center;
-  gap: 8px;
-  width: min(100%, 320px);
+  gap: 10px;
+  width: min(100%, 300px);
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
-  padding: 12px;
+  padding: 12px 14px 16px;
   background: var(--surface-soft);
   text-align: center;
 }

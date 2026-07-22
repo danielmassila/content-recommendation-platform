@@ -28,6 +28,13 @@ const MovieDetailsModal = ({ isRatingSaving = false, movie, onClose, onRate, rat
   const vote = formatVote(movie)
   const currentRating = movie.rating?.rating
   const visualUrl = movie.posterUrl ?? movie.backdropUrl
+  const hasVisual = Boolean(visualUrl)
+  const dialogClassName = [
+    'movie-modal__dialog',
+    hasVisual ? '' : 'movie-modal__dialog--no-visual',
+  ]
+    .filter(Boolean)
+    .join(' ')
   const visualClassName = [
     `movie-modal__visual movie-card--${movie.posterTone}`,
     movie.posterUrl ? 'movie-modal__visual--poster' : '',
@@ -40,7 +47,7 @@ const MovieDetailsModal = ({ isRatingSaving = false, movie, onClose, onRate, rat
       <article
         aria-labelledby="movie-modal-title"
         aria-modal="true"
-        className="movie-modal__dialog"
+        className={dialogClassName}
         onMouseDown={(event) => event.stopPropagation()}
         role="dialog"
       >
@@ -52,9 +59,11 @@ const MovieDetailsModal = ({ isRatingSaving = false, movie, onClose, onRate, rat
         >
           ×
         </button>
-        <div className={visualClassName} aria-hidden="true">
-          {visualUrl ? <img alt="" className="movie-modal__image" src={visualUrl} /> : null}
-        </div>
+        {hasVisual ? (
+          <div className={visualClassName} aria-hidden="true">
+            <img alt="" className="movie-modal__image" src={visualUrl} />
+          </div>
+        ) : null}
         <div className="movie-modal__content">
           <div className="movie-modal__header">
             <h2 id="movie-modal-title">{movie.title}</h2>
