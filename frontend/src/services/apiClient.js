@@ -28,14 +28,14 @@ const parseResponse = async (response) => {
   }
 
   const contentType = response.headers.get('content-type')
-  const payload = contentType?.includes('application/json')
+  const payload = contentType?.includes('json')
     ? await response.json()
     : await response.text()
 
   if (!response.ok) {
     const message =
       typeof payload === 'object' && payload !== null
-        ? payload.message ?? response.statusText
+        ? payload.message ?? payload.detail ?? payload.title ?? response.statusText
         : payload || response.statusText
 
     throw new Error(message)
