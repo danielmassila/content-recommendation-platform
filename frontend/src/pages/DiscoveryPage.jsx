@@ -3,12 +3,13 @@ import MovieCard from '../components/media/MovieCard'
 import MovieDetailsModal from '../components/media/MovieDetailsModal'
 import MovieRow from '../components/media/MovieRow'
 import { Button, EmptyState, ErrorState, LoadingState, SelectField } from '../components/ui'
-import { useAuth, useMovieCatalog, useRecommendations } from '../hooks'
+import { useAuth, useMovieCatalog, useMovieRating, useRecommendations } from '../hooks'
 
 const DiscoveryPage = () => {
   const { user } = useAuth()
   const [selectedGenre, setSelectedGenre] = useState('all')
   const [selectedMovie, setSelectedMovie] = useState(null)
+  const { error: ratingError, isSaving: isRatingSaving, rateMovie } = useMovieRating(user?.id)
   const { error, featuredPick, isEmpty, isLoading, isRecomputing, recommendationRows, recompute, refresh } =
     useRecommendations(user?.id)
   const {
@@ -18,6 +19,21 @@ const DiscoveryPage = () => {
     isLoading: isCatalogLoading,
     refresh: refreshCatalog,
   } = useMovieCatalog({ genre: selectedGenre, limit: 20 })
+
+  const handleRateMovie = async (movie, grade) => {
+    const rating = await rateMovie(movie, grade)
+    if (!rating) {
+      return
+    }
+
+    setSelectedMovie((currentMovie) =>
+      currentMovie?.id === movie.id
+        ? { ...currentMovie, rating }
+        : currentMovie,
+    )
+    refresh()
+    refreshCatalog()
+  }
 
   return (
     <section className="page page--discovery">
@@ -87,7 +103,9 @@ const DiscoveryPage = () => {
               </div>
               <div className="featured-pick__actions">
                 <Button onClick={() => setSelectedMovie(featuredPick)}>Détails</Button>
-                <Button variant="secondary">Noter</Button>
+                <Button variant="secondary" onClick={() => setSelectedMovie(featuredPick)}>
+                  Noter
+                </Button>
               </div>
             </div>
             <MovieCard movie={featuredPick} compact onSelect={setSelectedMovie} />
@@ -122,7 +140,13 @@ const DiscoveryPage = () => {
           ))
         : null}
 
-      <MovieDetailsModal movie={selectedMovie} onClose={() => setSelectedMovie(null)} />
+      <MovieDetailsModal
+        isRatingSaving={isRatingSaving}
+        movie={selectedMovie}
+        onClose={() => setSelectedMovie(null)}
+        onRate={handleRateMovie}
+        ratingError={ratingError}
+      />
     </section>
   )
 }

@@ -9,7 +9,7 @@ const formatVote = (movie) => {
   return movie.voteCount ? `${vote}/10 · ${movie.voteCount} votes` : `${vote}/10`
 }
 
-const MovieDetailsModal = ({ movie, onClose }) => {
+const MovieDetailsModal = ({ isRatingSaving = false, movie, onClose, onRate, ratingError }) => {
   useEffect(() => {
     const handleKeyDown = (event) => {
       if (event.key === 'Escape') {
@@ -26,6 +26,7 @@ const MovieDetailsModal = ({ movie, onClose }) => {
   }
 
   const vote = formatVote(movie)
+  const currentRating = movie.rating?.rating
   const visualStyle =
     movie.backdropUrl || movie.posterUrl
       ? { backgroundImage: `url(${movie.backdropUrl ?? movie.posterUrl})` }
@@ -55,25 +56,51 @@ const MovieDetailsModal = ({ movie, onClose }) => {
         />
         <div className="movie-modal__content">
           <div className="movie-modal__header">
-            <div>
-              <p className="eyebrow">Fiche film</p>
-              <h2 id="movie-modal-title">{movie.title}</h2>
-            </div>
+            <h2 id="movie-modal-title">{movie.title}</h2>
           </div>
 
           <div className="metadata">
             <span>{movie.year}</span>
             <span>{movie.duration}</span>
             {vote ? <span>{vote}</span> : null}
+            {movie.genres.map((genre) => (
+              <span key={genre}>{genre}</span>
+            ))}
           </div>
 
           <p>{movie.description}</p>
 
-          <dl className="movie-modal__facts">
+          <section className="movie-modal__rating" aria-labelledby="movie-rating-title">
             <div>
-              <dt>Genres</dt>
-              <dd>{movie.genres.join(' / ')}</dd>
+              <h3 id="movie-rating-title">Ta note</h3>
+              <p>
+                {currentRating
+                  ? `Ta note actuelle : ${currentRating}/5. Tu peux la modifier.`
+                  : 'Note ce film pour améliorer tes recommandations.'}
+              </p>
             </div>
+            <div className="rating-picker" aria-label="Noter le film">
+              {[1, 2, 3, 4, 5].map((grade) => (
+                <button
+                  aria-pressed={Number(currentRating) === grade}
+                  className="rating-button"
+                  disabled={isRatingSaving}
+                  key={grade}
+                  onClick={() => onRate?.(movie, grade)}
+                  type="button"
+                >
+                  {grade}
+                </button>
+              ))}
+            </div>
+            {ratingError ? (
+              <p className="form-error" role="alert">
+                {ratingError.message}
+              </p>
+            ) : null}
+          </section>
+
+          <dl className="movie-modal__facts">
             {movie.originalTitle ? (
               <div>
                 <dt>Titre original</dt>

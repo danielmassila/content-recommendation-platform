@@ -678,6 +678,8 @@ button.movie-card:focus-visible {
 
 .movie-modal__dialog {
   position: relative;
+  display: grid;
+  grid-template-columns: 3fr 2fr;
   width: min(100%, 860px);
   max-height: min(760px, calc(100svh - 48px));
   overflow: auto;
@@ -715,7 +717,7 @@ button.movie-card:focus-visible {
 }
 
 .movie-modal__visual {
-  min-height: clamp(180px, 34vw, 320px);
+  min-height: min(760px, calc(100svh - 48px));
   background-position: center;
   background-size: cover;
 }
@@ -727,16 +729,13 @@ button.movie-card:focus-visible {
 }
 
 .movie-modal__header {
-  display: flex;
-  align-items: start;
-  justify-content: space-between;
-  gap: 18px;
+  display: grid;
+  gap: 8px;
 }
 
 .movie-modal__header h2 {
-  margin-top: 8px;
-  font-size: clamp(2rem, 5vw, 4rem);
-  line-height: 0.98;
+  font-size: clamp(1.8rem, 4vw, 3rem);
+  line-height: 1;
 }
 
 .movie-modal__content p {
@@ -745,9 +744,60 @@ button.movie-card:focus-visible {
   line-height: 1.7;
 }
 
+.movie-modal__rating {
+  display: grid;
+  justify-self: center;
+  gap: 12px;
+  width: min(100%, 360px);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  background: var(--surface-soft);
+  text-align: center;
+}
+
+.movie-modal__rating h3 {
+  font-size: 1rem;
+}
+
+.rating-picker {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.rating-button {
+  display: inline-grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.06);
+  font-weight: 800;
+}
+
+.rating-button:hover,
+.rating-button[aria-pressed='true'] {
+  border-color: rgba(229, 82, 76, 0.72);
+  background: var(--accent-soft);
+}
+
+.rating-button[aria-pressed='true'] {
+  color: #19120f;
+  background: var(--gold);
+}
+
+.rating-button:disabled {
+  cursor: wait;
+  opacity: 0.64;
+}
+
 .movie-modal__facts {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
   margin: 0;
 }
@@ -784,7 +834,7 @@ button.movie-card:focus-visible {
   top: 98px;
   display: grid;
   justify-items: start;
-  gap: 10px;
+  gap: 12px;
   padding: 24px;
 }
 
@@ -801,6 +851,32 @@ button.movie-card:focus-visible {
 .profile-card p,
 .recommendation-note p {
   color: var(--text-muted);
+}
+
+.profile-algo-card {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+  margin-top: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  background: var(--surface-soft);
+}
+
+.profile-algo-card h2 {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+}
+
+.profile-algo-card strong {
+  color: var(--gold);
+  font-size: 1rem;
+}
+
+.profile-algo-card p {
+  line-height: 1.55;
 }
 
 .profile-content {
@@ -832,6 +908,55 @@ button.movie-card:focus-visible {
 
 .stat-card strong {
   font-size: 1.9rem;
+}
+
+.rating-history {
+  display: grid;
+  gap: 14px;
+}
+
+.rating-history h2 {
+  font-size: 1.15rem;
+}
+
+.rating-history__list {
+  display: grid;
+  gap: 12px;
+}
+
+.rating-history__item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(120px, 220px) auto;
+  align-items: center;
+  gap: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  background: var(--surface-soft);
+}
+
+.rating-history__item h3 {
+  font-size: 1rem;
+}
+
+.rating-history__item p {
+  margin-top: 6px;
+  color: var(--text-muted);
+  font-size: 0.86rem;
+}
+
+.rating-meter {
+  height: 10px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.rating-meter span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent), var(--gold));
 }
 
 .recommendation-note {
@@ -925,6 +1050,14 @@ button.movie-card:focus-visible {
     grid-auto-columns: 76%;
   }
 
+  .movie-modal__dialog {
+    grid-template-columns: 1fr;
+  }
+
+  .movie-modal__visual {
+    min-height: 220px;
+  }
+
   .movie-modal__header,
   .movie-modal__facts {
     grid-template-columns: 1fr;
@@ -932,5 +1065,9 @@ button.movie-card:focus-visible {
 
   .movie-modal__header {
     display: grid;
+  }
+
+  .rating-history__item {
+    grid-template-columns: 1fr;
   }
 }
