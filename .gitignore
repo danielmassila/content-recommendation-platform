@@ -62,7 +62,7 @@ tmp/
 
 ### Data (raw datasets should not be committed) ###
 datasets/
-data/
+/data/
 *.parquet
 *.jsonl
 
