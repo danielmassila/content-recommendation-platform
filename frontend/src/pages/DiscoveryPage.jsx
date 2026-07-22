@@ -2,14 +2,13 @@ import { useState } from 'react'
 import MovieCard from '../components/media/MovieCard'
 import MovieRow from '../components/media/MovieRow'
 import { Button, EmptyState, ErrorState, LoadingState, SelectField } from '../components/ui'
-import { useMovieCatalog, useRecommendations } from '../hooks'
-
-const demoUserId = 1
+import { useAuth, useMovieCatalog, useRecommendations } from '../hooks'
 
 const DiscoveryPage = () => {
+  const { user } = useAuth()
   const [selectedGenre, setSelectedGenre] = useState('all')
   const { error, featuredPick, isEmpty, isLoading, recommendationRows, refresh } =
-    useRecommendations(demoUserId)
+    useRecommendations(user?.id)
   const {
     catalogRows,
     error: catalogError,
@@ -59,7 +58,7 @@ const DiscoveryPage = () => {
       ) : null}
 
       {isEmpty ? (
-        <EmptyState title="Pas encore de recommandation pour cet utilisateur" />
+        <EmptyState title="Pas encore de recommandation pour ce compte" />
       ) : null}
 
       {featuredPick ? (
@@ -81,10 +80,6 @@ const DiscoveryPage = () => {
             </div>
             <MovieCard movie={featuredPick} compact />
           </section>
-
-          <div className="api-note">
-            Données chargées depuis l'API pour l'utilisateur de démo #{demoUserId}.
-          </div>
 
           {recommendationRows.map((row) => (
             <MovieRow key={row.id} row={row} />

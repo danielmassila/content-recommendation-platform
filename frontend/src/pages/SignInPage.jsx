@@ -8,7 +8,7 @@ const SignInPage = () => {
   const navigate = useNavigate()
   const { error: authError, isLoading, signIn, signUp } = useAuth()
   const [mode, setMode] = useState('login')
-  const [email, setEmail] = useState('daniel@example.fr')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [formError, setFormError] = useState(null)
 
@@ -57,7 +57,7 @@ const SignInPage = () => {
           id="email"
           label="Email"
           onChange={(event) => setEmail(event.target.value)}
-          placeholder="daniel@example.fr"
+          placeholder="email@example.com"
           type="email"
           value={email}
         />

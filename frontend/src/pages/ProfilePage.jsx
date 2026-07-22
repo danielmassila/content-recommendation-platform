@@ -1,19 +1,18 @@
 import MovieRow from '../components/media/MovieRow'
 import { EmptyState, ErrorState, LoadingState } from '../components/ui'
-import { useUserProfile } from '../hooks'
-
-const demoUserId = 1
+import { useAuth, useUserProfile } from '../hooks'
 
 const ProfilePage = () => {
+  const { user: currentUser } = useAuth()
   const { error, initials, isEmpty, isLoading, ratedMovieRows, refresh, stats, user } =
-    useUserProfile(demoUserId)
+    useUserProfile(currentUser?.id)
 
   return (
     <section className="page page--profile">
       <aside className="profile-card">
         <span className="profile-avatar">{initials}</span>
         <h1>{user?.email ?? 'Utilisateur'}</h1>
-        <p>Utilisateur de démo #{demoUserId}</p>
+        <p>Compte #{currentUser?.id}</p>
       </aside>
 
       <div className="profile-content">
@@ -37,7 +36,7 @@ const ProfilePage = () => {
           ))}
         </div>
 
-        {isEmpty ? <EmptyState title="Aucune note récente pour cet utilisateur" /> : null}
+        {isEmpty ? <EmptyState title="Aucune note récente pour ce compte" /> : null}
 
         {!isLoading && !error
           ? ratedMovieRows.map((row) => <MovieRow key={row.id} row={row} />)
