@@ -328,15 +328,91 @@ select:focus-visible {
 }
 
 .preference-panel {
-  width: min(100%, 780px);
+  display: grid;
+  gap: 22px;
+  width: min(100%, 860px);
   padding: clamp(24px, 5vw, 46px);
 }
 
-.preference-grid {
+.preference-panel__intro {
+  max-width: 680px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.preference-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.preference-tab,
+.preference-suggestion,
+.preference-chip {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.preference-tab {
+  min-height: 38px;
+  padding: 0 14px;
+  font-weight: 800;
+}
+
+.preference-tab[aria-pressed='true'] {
+  border-color: rgba(229, 82, 76, 0.58);
+  background: var(--accent-soft);
+}
+
+.preference-search {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 14px;
-  margin: 28px 0;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 12px;
+}
+
+.preference-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.preference-suggestion {
+  min-height: 34px;
+  padding: 0 12px;
+  color: var(--text-muted);
+}
+
+.preference-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  min-height: 96px;
+  align-items: start;
+}
+
+.preference-chip {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 12px;
+}
+
+.preference-chip span {
+  color: var(--gold);
+  font-size: 0.76rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.preference-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 12px;
 }
 
 .radio-card {
