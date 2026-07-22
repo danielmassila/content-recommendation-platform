@@ -12,17 +12,21 @@ const AppShell = ({ children, navItems, user }) => {
           Tonight&apos;s Pick
         </Link>
 
-        <nav className="main-nav" aria-label="Navigation principale">
-          {navItems.map((item) => (
-            <NavLink
-              className={({ isActive }) => `nav-link ${isActive ? 'nav-link--active' : ''}`.trim()}
-              key={item.id}
-              to={item.path}
-            >
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
+        {user ? (
+          <nav className="main-nav" aria-label="Navigation principale">
+            {navItems.map((item) => (
+              <NavLink
+                className={({ isActive }) => `nav-link ${isActive ? 'nav-link--active' : ''}`.trim()}
+                key={item.id}
+                to={item.path}
+              >
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
+        ) : (
+          <div aria-hidden="true" />
+        )}
 
         {user ? (
           <div className="user-menu" aria-label="Utilisateur connecté">

@@ -190,8 +190,11 @@ select:focus-visible {
 .home-hero {
   display: grid;
   align-content: center;
+  justify-items: center;
   min-height: calc(100svh - 146px);
-  max-width: 700px;
+  max-width: 760px;
+  margin: 0 auto;
+  text-align: center;
 }
 
 .home-hero h1,
