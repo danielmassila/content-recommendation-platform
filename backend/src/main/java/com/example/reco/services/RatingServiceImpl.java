@@ -1,7 +1,6 @@
 package com.example.reco.services;
 
 import com.example.reco.common.exceptions.BadRequestException;
-import com.example.reco.common.exceptions.ConflictException;
 import com.example.reco.common.exceptions.NotFoundException;
 import com.example.reco.controllers.dto.RatingResponse;
 import com.example.reco.model.Item;
@@ -92,12 +91,15 @@ public class RatingServiceImpl implements RatingService {
         User user = userRepository.findById(userId)
                             .orElseThrow(() -> new NotFoundException("User with id " + userId + " not found"));
 
-        ratingRepository.findByUserIdAndItemId(userId, itemId).ifPresent(existing -> {
-            throw new ConflictException("User already rated this item");
-        });
-
-        Rating saved = ratingRepository.save(new Rating(user, item, grade));
-        return toResponse(saved);
+        return ratingRepository.findByUserIdAndItemId(userId, itemId)
+                .map(existing -> {
+                    existing.setRating(grade);
+                    return toResponse(ratingRepository.save(existing));
+                })
+                .orElseGet(() -> {
+                    Rating saved = ratingRepository.save(new Rating(user, item, grade));
+                    return toResponse(saved);
+                });
     }
 
     @Override
