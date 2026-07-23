@@ -25,7 +25,13 @@ def _load_metadata(raw_metadata) -> dict:
 
 
 def _request_tmdb_movie(tmdb_id: int, api_key: str) -> dict:
-    query = urllib.parse.urlencode({"api_key": api_key, "language": "fr-FR"})
+    query = urllib.parse.urlencode(
+        {
+            "api_key": api_key,
+            "append_to_response": "credits",
+            "language": "fr-FR",
+        }
+    )
     url = f"{TMDB_API_BASE_URL}/movie/{tmdb_id}?{query}"
 
     with urllib.request.urlopen(url, timeout=15) as response:
@@ -35,6 +41,17 @@ def _request_tmdb_movie(tmdb_id: int, api_key: str) -> dict:
 def _to_tmdb_metadata(payload: dict) -> dict:
     release_date = payload.get("release_date") or None
     year = int(release_date[:4]) if release_date and release_date[:4].isdigit() else None
+    credits = payload.get("credits") or {}
+    directors = [
+        member.get("name")
+        for member in credits.get("crew", [])
+        if member.get("job") == "Director" and member.get("name")
+    ]
+    cast = [
+        member.get("name")
+        for member in credits.get("cast", [])[:12]
+        if member.get("name")
+    ]
 
     return {
         "tmdb": {
@@ -52,6 +69,9 @@ def _to_tmdb_metadata(payload: dict) -> dict:
         "runtime": payload.get("runtime"),
         "year": year,
         "genres": [genre["name"] for genre in payload.get("genres", [])],
+        "directors": directors,
+        "cast": cast,
+        "actors": cast,
         "originalLanguage": payload.get("original_language"),
         "originalTitle": payload.get("original_title"),
     }
@@ -73,7 +93,11 @@ def _fetch_items_to_enrich(conn, limit: int) -> list[tuple[int, dict]]:
             WHERE type = 'MOVIE'
               AND metadata ? 'tmdbId'
               AND metadata->>'tmdbId' IS NOT NULL
-              AND NOT (metadata ? 'tmdb')
+              AND (
+                  NOT (metadata ? 'tmdb')
+                  OR NOT (metadata ? 'directors')
+                  OR NOT (metadata ? 'cast')
+              )
             ORDER BY id
             LIMIT %s;
             """,
