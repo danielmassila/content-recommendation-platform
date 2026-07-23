@@ -32,6 +32,18 @@ const normalizeGenres = (metadata, itemType) => {
   return [itemType ?? 'Film']
 }
 
+const normalizeList = (value) => {
+  if (Array.isArray(value)) {
+    return value.filter(Boolean)
+  }
+
+  if (typeof value === 'string') {
+    return value.split(',').map((entry) => entry.trim()).filter(Boolean)
+  }
+
+  return []
+}
+
 const toMatchPercent = (score) => {
   if (typeof score !== 'number') {
     return 0
@@ -66,6 +78,8 @@ export const toMovieCard = (item, recommendation, index = 0, rating) => {
         : undefined,
     originalLanguage: metadata.originalLanguage,
     originalTitle: metadata.originalTitle,
+    directors: normalizeList(metadata.directors ?? metadata.director),
+    cast: normalizeList(metadata.cast ?? metadata.actors),
     popularity: tmdb.popularity,
     voteAverage: tmdb.voteAverage,
     voteCount: tmdb.voteCount,

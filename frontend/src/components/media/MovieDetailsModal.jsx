@@ -117,6 +117,18 @@ const MovieDetailsModal = ({ isRatingSaving = false, movie, onClose, onRate, rat
           </section>
 
           <dl className="movie-modal__facts">
+            {movie.directors?.length ? (
+              <div>
+                <dt>Réalisation</dt>
+                <dd>{movie.directors.join(', ')}</dd>
+              </div>
+            ) : null}
+            {movie.cast?.length ? (
+              <div>
+                <dt>Avec</dt>
+                <dd>{movie.cast.slice(0, 5).join(', ')}</dd>
+              </div>
+            ) : null}
             {movie.originalTitle ? (
               <div>
                 <dt>Titre original</dt>
