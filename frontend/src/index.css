@@ -499,6 +499,32 @@ select:focus-visible {
   min-width: 210px;
 }
 
+.catalog-tools {
+  display: grid;
+  grid-template-columns: minmax(0, 420px) auto;
+  align-items: end;
+  gap: 16px;
+}
+
+.catalog-tools p {
+  margin: 0 0 8px;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
+.catalog-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.catalog-pagination span {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
 .featured-pick {
   display: grid;
   grid-template-columns: minmax(0, 1.2fr) 280px;
@@ -1150,6 +1176,15 @@ button.movie-card:focus-visible {
 
   .discovery-heading {
     align-items: stretch;
+  }
+
+  .catalog-tools {
+    grid-template-columns: 1fr;
+  }
+
+  .catalog-tools p,
+  .catalog-pagination {
+    justify-content: flex-start;
   }
 
   .profile-card {

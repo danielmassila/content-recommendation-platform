@@ -2,11 +2,13 @@ import { useEffect, useState } from 'react'
 import MovieCard from '../components/media/MovieCard'
 import MovieDetailsModal from '../components/media/MovieDetailsModal'
 import MovieRow from '../components/media/MovieRow'
-import { Button, EmptyState, ErrorState, LoadingState, SelectField } from '../components/ui'
+import { Button, EmptyState, ErrorState, LoadingState, SelectField, TextField } from '../components/ui'
 import { useAuth, useMovieCatalog, useMovieRating, useRecommendations } from '../hooks'
 
 const DiscoveryPage = () => {
   const { user } = useAuth()
+  const [catalogPage, setCatalogPage] = useState(1)
+  const [catalogQuery, setCatalogQuery] = useState('')
   const [selectedGenre, setSelectedGenre] = useState('all')
   const [selectedMovie, setSelectedMovie] = useState(null)
   const {
@@ -28,15 +30,29 @@ const DiscoveryPage = () => {
   } = useRecommendations(user?.id)
   const {
     catalogRows,
+    currentPage,
     error: catalogError,
     isEmpty: isCatalogEmpty,
     isLoading: isCatalogLoading,
+    pageCount,
     refresh: refreshCatalog,
-  } = useMovieCatalog({ genre: selectedGenre, limit: 20, userId: user?.id })
+    totalCount,
+    totalResults,
+  } = useMovieCatalog({
+    genre: selectedGenre,
+    limit: 100,
+    page: catalogPage,
+    pageSize: 12,
+    query: catalogQuery,
+    userId: user?.id,
+  })
 
   useEffect(() => {
     clearRatingError()
   }, [clearRatingError, selectedMovie?.id])
+
+  const hasRatedRecommendations = ratedRecommendationRows.some((row) => row.items.length > 0)
+  const hasUnratedRecommendations = recommendationRows.some((row) => row.items.length > 0)
 
   const handleRateMovie = async (movie, grade) => {
     let rating = null
@@ -70,7 +86,10 @@ const DiscoveryPage = () => {
           id="genre-filter"
           label="Genre"
           value={selectedGenre}
-          onChange={(event) => setSelectedGenre(event.target.value)}
+          onChange={(event) => {
+            setSelectedGenre(event.target.value)
+            setCatalogPage(1)
+          }}
         >
           <option value="all">Tous les genres</option>
           <option value="Action">Action</option>
@@ -103,11 +122,27 @@ const DiscoveryPage = () => {
         <section className="recommendation-note recommendation-note--empty">
           <h2>Pas encore de recommandation pour ce compte</h2>
           <p>
-            Génère une première sélection à partir des données disponibles, puis affine-la en notant quelques films.
+            Génère une première sélection à partir de tes préférences et de la popularité, puis affine-la en notant
+            quelques films.
           </p>
           <div className="recommendation-note__actions">
             <Button disabled={isRecomputing} onClick={recompute}>
               {isRecomputing ? 'Génération...' : 'Générer mes recommandations'}
+            </Button>
+          </div>
+        </section>
+      ) : null}
+
+      {!isEmpty && !isLoading && !error && !hasUnratedRecommendations && hasRatedRecommendations ? (
+        <section className="recommendation-note recommendation-note--empty">
+          <h2>Toutes les recommandations actuelles sont déjà notées</h2>
+          <p>
+            Relance un calcul après avoir ajouté des préférences ou noté de nouveaux films pour faire remonter une
+            nouvelle sélection.
+          </p>
+          <div className="recommendation-note__actions">
+            <Button disabled={isRecomputing} onClick={recompute}>
+              {isRecomputing ? 'Génération...' : 'Recalculer mes recommandations'}
             </Button>
           </div>
         </section>
@@ -154,6 +189,24 @@ const DiscoveryPage = () => {
             ))
         : null}
 
+      <section className="catalog-tools" aria-label="Filtres du catalogue">
+        <TextField
+          autoComplete="off"
+          id="catalog-search"
+          label="Recherche"
+          onChange={(event) => {
+            setCatalogQuery(event.target.value)
+            setCatalogPage(1)
+          }}
+          placeholder="Titre ou réalisateur..."
+          type="search"
+          value={catalogQuery}
+        />
+        <p>
+          {totalResults} résultat{totalResults > 1 ? 's' : ''} sur {totalCount}
+        </p>
+      </section>
+
       {isCatalogLoading ? (
         <LoadingState title="Chargement du catalogue..." />
       ) : null}
@@ -168,7 +221,14 @@ const DiscoveryPage = () => {
       ) : null}
 
       {isCatalogEmpty ? (
-        <EmptyState title="Aucun contenu ne correspond à ce filtre" />
+        <EmptyState
+          message={
+            catalogQuery
+              ? 'Essaie un autre titre, réalisateur ou genre.'
+              : 'Le catalogue ne contient aucun contenu pour ce filtre.'
+          }
+          title="Aucun film trouvé"
+        />
       ) : null}
 
       {!isCatalogLoading && !catalogError
@@ -176,6 +236,28 @@ const DiscoveryPage = () => {
             <MovieRow key={row.id} onMovieSelect={setSelectedMovie} row={row} />
           ))
         : null}
+
+      {!isCatalogLoading && !catalogError && !isCatalogEmpty ? (
+        <nav className="catalog-pagination" aria-label="Pagination du catalogue">
+          <Button
+            disabled={currentPage <= 1}
+            onClick={() => setCatalogPage((page) => Math.max(1, page - 1))}
+            variant="secondary"
+          >
+            Précédent
+          </Button>
+          <span>
+            Page {currentPage} / {pageCount}
+          </span>
+          <Button
+            disabled={currentPage >= pageCount}
+            onClick={() => setCatalogPage((page) => Math.min(pageCount, page + 1))}
+            variant="secondary"
+          >
+            Suivant
+          </Button>
+        </nav>
+      ) : null}
 
       <MovieDetailsModal
         isRatingSaving={isRatingSaving}

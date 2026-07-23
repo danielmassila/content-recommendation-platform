@@ -2,7 +2,19 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { getLatestRatingsByItemId, toMovieCard } from '../mappers'
 import { itemsApi, ratingsApi } from '../services'
 
-export const useMovieCatalog = ({ genre = 'all', limit = 50, userId, enabled = true } = {}) => {
+const normalizeSearch = (value) => {
+  return value.trim().toLowerCase()
+}
+
+export const useMovieCatalog = ({
+  genre = 'all',
+  limit = 100,
+  page = 1,
+  pageSize = 12,
+  query = '',
+  userId,
+  enabled = true,
+} = {}) => {
   const [movies, setMovies] = useState([])
   const [isLoading, setIsLoading] = useState(enabled)
   const [error, setError] = useState(null)
@@ -58,27 +70,45 @@ export const useMovieCatalog = ({ genre = 'all', limit = 50, userId, enabled = t
   }, [loadCatalog, reloadKey])
 
   const filteredMovies = useMemo(() => {
-    if (genre === 'all') {
-      return movies
-    }
+    const searchQuery = normalizeSearch(query)
 
-    return movies.filter((movie) =>
-      movie.genres.some((movieGenre) => movieGenre.toLowerCase() === genre.toLowerCase()),
-    )
-  }, [genre, movies])
+    return movies.filter((movie) => {
+      const matchesGenre =
+        genre === 'all' ||
+        movie.genres.some((movieGenre) => movieGenre.toLowerCase() === genre.toLowerCase())
+      const matchesSearch =
+        !searchQuery ||
+        movie.title.toLowerCase().includes(searchQuery) ||
+        movie.originalTitle?.toLowerCase().includes(searchQuery) ||
+        movie.directors.some((director) => director.toLowerCase().includes(searchQuery))
+
+      return matchesGenre && matchesSearch
+    })
+  }, [genre, movies, query])
+
+  const pageCount = Math.max(1, Math.ceil(filteredMovies.length / pageSize))
+  const currentPage = Math.min(Math.max(page, 1), pageCount)
+  const paginatedMovies = useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize
+    return filteredMovies.slice(startIndex, startIndex + pageSize)
+  }, [currentPage, filteredMovies, pageSize])
 
   return {
     catalogRows: [
       {
         id: 'catalog',
         title: 'Catalogue',
-        items: filteredMovies,
+        items: paginatedMovies,
       },
     ],
+    currentPage,
     error,
     isEmpty: !isLoading && !error && filteredMovies.length === 0,
     isLoading,
     movies: filteredMovies,
+    pageCount,
     refresh,
+    totalCount: movies.length,
+    totalResults: filteredMovies.length,
   }
 }
