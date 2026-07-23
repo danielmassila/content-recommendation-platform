@@ -26,7 +26,13 @@ def test_recompute_all_recommendations_writes_rows(monkeypatch):
         "reco_ml.algo.repositories.fetch_all_items", lambda _conn: item_ids
     )
     monkeypatch.setattr(
+        "reco_ml.algo.repositories.fetch_all_item_profiles", lambda _conn: {}
+    )
+    monkeypatch.setattr(
         "reco_ml.algo.repositories.fetch_all_ratings", lambda _conn: ratings
+    )
+    monkeypatch.setattr(
+        "reco_ml.algo.repositories.fetch_user_preferences", lambda _conn: {}
     )
     monkeypatch.setattr(
         "reco_ml.algo.repositories.get_stats_by_item", lambda _conn: stats_by_items

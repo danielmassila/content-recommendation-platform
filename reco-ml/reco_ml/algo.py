@@ -1,12 +1,14 @@
 import statistics
 import math
 import heapq
+import unicodedata
 from typing import Dict, List, Tuple, Iterable
 from reco_ml import repositories
 from reco_ml.repositories import RecommendationRow
 from collections import defaultdict
 
 RatingRow = Tuple[int, int, float]
+PreferenceRow = Tuple[str, str]
 
 DEMO_CONFIG = {
     "pop_p": 300,
@@ -316,6 +318,76 @@ def mix_scores(
     }
 
 
+def normalize_text(value: str) -> str:
+    normalized = unicodedata.normalize("NFKD", value)
+    without_accents = "".join(
+        char for char in normalized if not unicodedata.combining(char)
+    )
+    return without_accents.casefold().strip()
+
+
+def _metadata_values(metadata: dict, *keys: str) -> set[str]:
+    values: set[str] = set()
+
+    for key in keys:
+        raw_value = metadata.get(key)
+        if isinstance(raw_value, list):
+            values.update(normalize_text(str(value)) for value in raw_value)
+        elif raw_value:
+            values.add(normalize_text(str(raw_value)))
+
+    return values
+
+
+def build_preference_scores(
+    preferences: List[PreferenceRow],
+    item_profiles: Dict[int, dict],
+) -> Dict[int, float]:
+    if not preferences or not item_profiles:
+        return {}
+
+    preferred_genres = {
+        normalize_text(value)
+        for preference_type, value in preferences
+        if preference_type == "genre"
+    }
+    preferred_movies = {
+        normalize_text(value)
+        for preference_type, value in preferences
+        if preference_type == "movie"
+    }
+    preferred_people = {
+        normalize_text(value)
+        for preference_type, value in preferences
+        if preference_type == "person"
+    }
+
+    scores: Dict[int, float] = {}
+
+    for item_id, profile in item_profiles.items():
+        metadata = profile.get("metadata") or {}
+        title = normalize_text(str(profile.get("title") or ""))
+        original_title = normalize_text(str(metadata.get("originalTitle") or ""))
+        genres = _metadata_values(metadata, "genres", "genre")
+        people = _metadata_values(metadata, "directors", "director", "cast", "actors")
+
+        score = 0.0
+        if preferred_genres and preferred_genres.intersection(genres):
+            score += 0.7
+        if preferred_movies and any(
+            movie in title or movie in original_title or title in movie
+            for movie in preferred_movies
+        ):
+            score += 1.0
+        if preferred_people and preferred_people.intersection(people):
+            score += 0.8
+
+        if score > 0.0:
+            scores[item_id] = score
+
+    return normalize_scores(scores)
+
+
 def build_candidates_for_user(
     user_id: int,
     ratings_by_user: Dict[int, Dict[int, float]],
@@ -323,6 +395,7 @@ def build_candidates_for_user(
     all_items_set: set[int],
     pop_top_items: List[int],
     sim_cache: Dict[Tuple[int, int], float],
+    preference_scores: Dict[int, float] | None = None,
     neighbor_pool: int = DEMO_CONFIG["neighbor_pool"],
     max_seed_items: int = DEMO_CONFIG["max_seed_items"],
     max_raters_per_item: int = DEMO_CONFIG["max_raters_per_item"],
@@ -336,6 +409,7 @@ def build_candidates_for_user(
         return set(pop_top_items)
 
     candidates: set[int] = set(pop_top_items)
+    candidates.update((preference_scores or {}).keys())
 
     seed_items = sorted(seen.items(), key=lambda kv: kv[1], reverse=True)
     seed_items = [item_id for item_id, _ in seed_items[:max_seed_items]]
@@ -471,6 +545,7 @@ def recommend_for_user(
     mu: float,
     b_i: Dict[int, float],
     b_u: Dict[int, float],
+    preference_scores: Dict[int, float] | None = None,
 ) -> List[Tuple[int, float]]:
     sim_cache: Dict[Tuple[int, int], float] = {}
 
@@ -480,6 +555,7 @@ def recommend_for_user(
         users_by_item=users_by_item,
         all_items_set=all_items_set,
         pop_top_items=pop_top_items,
+        preference_scores=preference_scores,
         sim_cache=sim_cache,
     )
 
@@ -518,7 +594,11 @@ def recommend_for_user(
 
     cf_scores = normalize_scores(cf_scores)
     mixed_scores = {
-        item_id: alpha * cf_scores[item_id] + (1.0 - alpha) * pop_scores[item_id]
+        item_id: (
+            alpha * cf_scores[item_id]
+            + (1.0 - alpha) * pop_scores[item_id]
+            + 0.18 * (preference_scores or {}).get(item_id, 0.0)
+        )
         for item_id in candidates
     }
     return top_n(mixed_scores, n)
@@ -531,7 +611,9 @@ def recompute_all_recommendations(
 ) -> None:
     user_ids = repositories.fetch_all_users(conn)
     item_ids = repositories.fetch_all_items(conn)
+    item_profiles = repositories.fetch_all_item_profiles(conn)
     all_items_set = set(item_ids)
+    preferences_by_user = repositories.fetch_user_preferences(conn)
 
     ratings = repositories.fetch_all_ratings(conn)
     stats_by_items = repositories.get_stats_by_item(conn)
@@ -567,6 +649,10 @@ def recompute_all_recommendations(
             mu=mu,
             b_i=b_i,
             b_u=b_u,
+            preference_scores=build_preference_scores(
+                preferences_by_user.get(user_id, []),
+                item_profiles,
+            ),
         )
 
         for rank, (item_id, score) in enumerate(recs, start=1):
