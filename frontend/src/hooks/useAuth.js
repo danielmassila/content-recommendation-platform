@@ -128,6 +128,13 @@ export const AuthProvider = ({ children }) => {
     setSession({ accessToken: null, user: null })
   }, [])
 
+  const updateCurrentUser = useCallback((nextUser) => {
+    setSession((currentSession) => ({
+      ...currentSession,
+      user: nextUser,
+    }))
+  }, [])
+
   const value = useMemo(
     () => ({
       error,
@@ -136,9 +143,10 @@ export const AuthProvider = ({ children }) => {
       signIn,
       signOut,
       signUp,
+      updateCurrentUser,
       user,
     }),
-    [error, isLoading, signIn, signOut, signUp, user],
+    [error, isLoading, signIn, signOut, signUp, updateCurrentUser, user],
   )
 
   return createElement(AuthContext, { value }, children)

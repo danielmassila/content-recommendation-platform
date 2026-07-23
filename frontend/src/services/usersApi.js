@@ -10,4 +10,13 @@ export const usersApi = {
   createUser({ email }) {
     return apiClient.post('/api/v1/users', { email })
   },
+  updateUser(userId, { email, username }) {
+    return apiClient.put(`/api/v1/users/${userId}`, { email, username })
+  },
+  changePassword(userId, { currentPassword, newPassword }) {
+    return apiClient.put(`/api/v1/users/${userId}/password`, {
+      currentPassword,
+      newPassword,
+    })
+  },
 }
