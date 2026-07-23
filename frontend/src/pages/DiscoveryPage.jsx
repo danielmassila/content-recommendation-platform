@@ -15,8 +15,17 @@ const DiscoveryPage = () => {
     isSaving: isRatingSaving,
     rateMovie,
   } = useMovieRating(user?.id)
-  const { error, featuredPick, isEmpty, isLoading, isRecomputing, recommendationRows, recompute, refresh } =
-    useRecommendations(user?.id)
+  const {
+    error,
+    featuredPick,
+    isEmpty,
+    isLoading,
+    isRecomputing,
+    ratedRecommendationRows,
+    recommendationRows,
+    recompute,
+    refresh,
+  } = useRecommendations(user?.id)
   const {
     catalogRows,
     error: catalogError,
@@ -126,11 +135,24 @@ const DiscoveryPage = () => {
             <MovieCard movie={featuredPick} compact onSelect={setSelectedMovie} />
           </section>
 
-          {recommendationRows.map((row) => (
-            <MovieRow key={row.id} onMovieSelect={setSelectedMovie} row={row} />
-          ))}
         </>
       ) : null}
+
+      {!isLoading && !error
+        ? recommendationRows
+            .filter((row) => row.items.length > 0)
+            .map((row) => (
+              <MovieRow key={row.id} onMovieSelect={setSelectedMovie} row={row} />
+            ))
+        : null}
+
+      {!isLoading && !error
+        ? ratedRecommendationRows
+            .filter((row) => row.items.length > 0)
+            .map((row) => (
+              <MovieRow key={row.id} onMovieSelect={setSelectedMovie} row={row} />
+            ))
+        : null}
 
       {isCatalogLoading ? (
         <LoadingState title="Chargement du catalogue..." />

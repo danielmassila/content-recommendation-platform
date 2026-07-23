@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { getLatestRatingsByItemId, toMovieCard } from '../mappers'
 import { itemsApi, ratingsApi, recommendationsApi } from '../services'
 
@@ -103,18 +103,33 @@ export const useRecommendations = (
     }
   }, [loadRecommendations, reloadKey])
 
+  const unratedMovies = useMemo(() => {
+    return movies.filter((movie) => !movie.rating)
+  }, [movies])
+
+  const ratedMovies = useMemo(() => {
+    return movies.filter((movie) => movie.rating)
+  }, [movies])
+
   return {
     error,
-    featuredPick: movies[0] ?? null,
+    featuredPick: unratedMovies[0] ?? null,
     isEmpty: !isLoading && !error && movies.length === 0,
     isLoading,
     isRecomputing,
     movies,
+    ratedRecommendationRows: [
+      {
+        id: 'rated-recommendations',
+        title: 'Déjà notés',
+        items: ratedMovies,
+      },
+    ],
     recommendationRows: [
       {
         id: 'recommended',
         title: 'Recommandé pour toi',
-        items: movies,
+        items: unratedMovies,
       },
     ],
     recompute,
