@@ -988,6 +988,22 @@ button.movie-card:focus-visible {
   font-size: 1.8rem;
 }
 
+.profile-settings-toggle {
+  border: 1px solid rgba(232, 185, 113, 0.34);
+  border-radius: var(--radius-pill);
+  padding: 8px 12px;
+  color: var(--gold);
+  background: rgba(232, 185, 113, 0.1);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.profile-settings-toggle:hover,
+.profile-settings-toggle[aria-expanded='true'] {
+  border-color: rgba(232, 185, 113, 0.58);
+  background: rgba(232, 185, 113, 0.18);
+}
+
 .profile-card p,
 .recommendation-note p {
   color: var(--text-muted);
@@ -1025,6 +1041,56 @@ button.movie-card:focus-visible {
   min-width: 0;
 }
 
+.settings-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: grid;
+  place-items: center;
+  padding: clamp(14px, 3vw, 32px);
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(10px);
+}
+
+.settings-modal__dialog {
+  position: relative;
+  display: grid;
+  gap: 18px;
+  width: min(100%, 820px);
+  max-height: calc(100svh - 32px);
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: clamp(20px, 4vw, 30px);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.settings-modal__header {
+  display: grid;
+  gap: 6px;
+}
+
+.settings-modal__header h2 {
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+}
+
+.settings-modal__close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 50%;
+  color: var(--text);
+  background: rgba(7, 8, 11, 0.74);
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
 .account-settings {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1040,7 +1106,7 @@ button.movie-card:focus-visible {
   background: var(--surface);
 }
 
-.settings-card h2 {
+.settings-card h3 {
   font-size: 1.05rem;
 }
 

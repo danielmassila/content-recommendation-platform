@@ -3,7 +3,7 @@ import { Button, EmptyState, ErrorState, LoadingState, TextField } from '../comp
 import { useAuth, useUserProfile } from '../hooks'
 import { usersApi } from '../services'
 
-const AccountSettings = ({ onUserUpdate, user }) => {
+const AccountSettings = ({ onClose, onUserUpdate, user }) => {
   const [accountForm, setAccountForm] = useState({
     email: user.email ?? '',
     username: user.username ?? '',
@@ -51,69 +51,91 @@ const AccountSettings = ({ onUserUpdate, user }) => {
   }
 
   return (
-    <section className="account-settings" aria-label="Paramètres du compte">
-      <form className="settings-card" onSubmit={handleAccountSubmit}>
-        <div>
-          <h2>Informations du compte</h2>
-          <p>Modifie ton nom d’utilisateur ou ton email.</p>
-        </div>
-        <TextField
-          autoComplete="username"
-          id="profile-username"
-          label="Nom d’utilisateur"
-          minLength="2"
-          onChange={(event) => setAccountForm((form) => ({ ...form, username: event.target.value }))}
-          required
-          type="text"
-          value={accountForm.username}
-        />
-        <TextField
-          autoComplete="email"
-          id="profile-email"
-          label="Email"
-          onChange={(event) => setAccountForm((form) => ({ ...form, email: event.target.value }))}
-          required
-          type="email"
-          value={accountForm.email}
-        />
-        {accountError ? <p className="form-error">{accountError}</p> : null}
-        {accountMessage ? <p className="form-success">{accountMessage}</p> : null}
-        <Button disabled={isAccountSaving} type="submit">
-          {isAccountSaving ? 'Sauvegarde...' : 'Sauvegarder'}
-        </Button>
-      </form>
+    <div className="settings-modal" role="presentation" onMouseDown={onClose}>
+      <section
+        aria-labelledby="settings-modal-title"
+        aria-modal="true"
+        className="settings-modal__dialog"
+        onMouseDown={(event) => event.stopPropagation()}
+        role="dialog"
+      >
+        <button
+          aria-label="Fermer les paramètres du compte"
+          className="settings-modal__close"
+          onClick={onClose}
+          type="button"
+        >
+          ×
+        </button>
+        <header className="settings-modal__header">
+          <p className="eyebrow">Compte</p>
+          <h2 id="settings-modal-title">Paramètres du compte</h2>
+        </header>
+        <div className="account-settings">
+          <form className="settings-card" onSubmit={handleAccountSubmit}>
+            <div>
+              <h3>Informations</h3>
+              <p>Modifie ton nom d’utilisateur ou ton email.</p>
+            </div>
+            <TextField
+              autoComplete="username"
+              id="profile-username"
+              label="Nom d’utilisateur"
+              minLength="2"
+              onChange={(event) => setAccountForm((form) => ({ ...form, username: event.target.value }))}
+              required
+              type="text"
+              value={accountForm.username}
+            />
+            <TextField
+              autoComplete="email"
+              id="profile-email"
+              label="Email"
+              onChange={(event) => setAccountForm((form) => ({ ...form, email: event.target.value }))}
+              required
+              type="email"
+              value={accountForm.email}
+            />
+            {accountError ? <p className="form-error">{accountError}</p> : null}
+            {accountMessage ? <p className="form-success">{accountMessage}</p> : null}
+            <Button disabled={isAccountSaving} type="submit">
+              {isAccountSaving ? 'Sauvegarde...' : 'Sauvegarder'}
+            </Button>
+          </form>
 
-      <form className="settings-card" onSubmit={handlePasswordSubmit}>
-        <div>
-          <h2>Mot de passe</h2>
-          <p>Choisis un nouveau mot de passe à partir de l’ancien.</p>
+          <form className="settings-card" onSubmit={handlePasswordSubmit}>
+            <div>
+              <h3>Mot de passe</h3>
+              <p>Choisis un nouveau mot de passe à partir de l’ancien.</p>
+            </div>
+            <TextField
+              autoComplete="current-password"
+              id="current-password"
+              label="Mot de passe actuel"
+              onChange={(event) => setPasswordForm((form) => ({ ...form, currentPassword: event.target.value }))}
+              required
+              type="password"
+              value={passwordForm.currentPassword}
+            />
+            <TextField
+              autoComplete="new-password"
+              id="new-password"
+              label="Nouveau mot de passe"
+              minLength="8"
+              onChange={(event) => setPasswordForm((form) => ({ ...form, newPassword: event.target.value }))}
+              required
+              type="password"
+              value={passwordForm.newPassword}
+            />
+            {passwordError ? <p className="form-error">{passwordError}</p> : null}
+            {passwordMessage ? <p className="form-success">{passwordMessage}</p> : null}
+            <Button disabled={isPasswordSaving} type="submit">
+              {isPasswordSaving ? 'Sauvegarde...' : 'Changer le mot de passe'}
+            </Button>
+          </form>
         </div>
-        <TextField
-          autoComplete="current-password"
-          id="current-password"
-          label="Mot de passe actuel"
-          onChange={(event) => setPasswordForm((form) => ({ ...form, currentPassword: event.target.value }))}
-          required
-          type="password"
-          value={passwordForm.currentPassword}
-        />
-        <TextField
-          autoComplete="new-password"
-          id="new-password"
-          label="Nouveau mot de passe"
-          minLength="8"
-          onChange={(event) => setPasswordForm((form) => ({ ...form, newPassword: event.target.value }))}
-          required
-          type="password"
-          value={passwordForm.newPassword}
-        />
-        {passwordError ? <p className="form-error">{passwordError}</p> : null}
-        {passwordMessage ? <p className="form-success">{passwordMessage}</p> : null}
-        <Button disabled={isPasswordSaving} type="submit">
-          {isPasswordSaving ? 'Sauvegarde...' : 'Changer le mot de passe'}
-        </Button>
-      </form>
-    </section>
+      </section>
+    </div>
   )
 }
 
@@ -121,6 +143,7 @@ const ProfilePage = () => {
   const { updateCurrentUser, user: currentUser } = useAuth()
   const { error, initials, isEmpty, isLoading, ratedMovieRows, refresh, stats, user } =
     useUserProfile(currentUser?.id)
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
 
   const handleUserUpdate = (updatedUser) => {
     updateCurrentUser(updatedUser)
@@ -133,6 +156,15 @@ const ProfilePage = () => {
         <span className="profile-avatar">{initials}</span>
         <h1>{user?.username ?? currentUser?.name ?? 'Utilisateur'}</h1>
         <p>{user?.email ?? `Compte #${currentUser?.id}`}</p>
+        <button
+          aria-expanded={isSettingsOpen}
+          aria-haspopup="dialog"
+          className="profile-settings-toggle"
+          onClick={() => setIsSettingsOpen(true)}
+          type="button"
+        >
+          Paramètres du compte
+        </button>
         <section className="profile-algo-card">
           <h2>Algo utilisé</h2>
           <strong>hybrid_usercf_pop</strong>
@@ -164,8 +196,13 @@ const ProfilePage = () => {
           ))}
         </div>
 
-        {!isLoading && !error && user ? (
-          <AccountSettings key={`${user.id}-${user.email}-${user.username}`} onUserUpdate={handleUserUpdate} user={user} />
+        {!isLoading && !error && user && isSettingsOpen ? (
+          <AccountSettings
+            key={`${user.id}-${user.email}-${user.username}`}
+            onClose={() => setIsSettingsOpen(false)}
+            onUserUpdate={handleUserUpdate}
+            user={user}
+          />
         ) : null}
 
         {isEmpty ? <EmptyState title="Aucune note récente pour ce compte" /> : null}
