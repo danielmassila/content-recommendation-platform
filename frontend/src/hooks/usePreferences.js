@@ -23,6 +23,7 @@ export const usePreferences = () => {
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState(null)
+  const [lastSavedAt, setLastSavedAt] = useState(null)
 
   useEffect(() => {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(preferences))
@@ -68,6 +69,7 @@ export const usePreferences = () => {
 
     try {
       await preferencesApi.replaceUserPreferences(userId, nextPreferences.entries)
+      setLastSavedAt(new Date())
     } catch (caughtError) {
       setError(caughtError)
     } finally {
@@ -117,6 +119,7 @@ export const usePreferences = () => {
     getEntriesByType,
     isLoading,
     isSaving,
+    lastSavedAt,
     loadPreferences,
     preferences,
     removePreference,

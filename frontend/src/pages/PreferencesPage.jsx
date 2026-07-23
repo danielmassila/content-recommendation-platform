@@ -14,6 +14,7 @@ const PreferencesPage = () => {
     getEntriesByType,
     isLoading,
     isSaving,
+    lastSavedAt,
     loadPreferences,
     preferences,
     removePreference,
@@ -77,6 +78,12 @@ const PreferencesPage = () => {
             onRetry={() => loadPreferences(user?.id)}
             title="Impossible de synchroniser les préférences"
           />
+        ) : null}
+
+        {lastSavedAt && !error ? (
+          <p className="form-success" role="status">
+            Préférences sauvegardées.
+          </p>
         ) : null}
 
         <div className="preference-tabs" aria-label="Types de préférences">
