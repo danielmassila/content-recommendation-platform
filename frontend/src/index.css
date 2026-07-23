@@ -326,6 +326,25 @@ select:focus-visible {
   line-height: 1.45;
 }
 
+.sync-warning {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid rgba(232, 185, 113, 0.28);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  background: rgba(232, 185, 113, 0.1);
+}
+
+.sync-warning p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
 .auth-card__hint {
   color: var(--text-muted);
   font-size: 0.82rem;
@@ -501,13 +520,14 @@ select:focus-visible {
 
 .catalog-tools {
   display: grid;
-  grid-template-columns: minmax(220px, 1.5fr) repeat(3, minmax(150px, 0.7fr)) auto;
+  grid-template-columns: minmax(220px, 1.5fr) repeat(3, minmax(150px, 0.7fr));
   align-items: end;
   gap: 16px;
 }
 
-.catalog-tools p {
-  margin: 0 0 8px;
+.catalog-tools__count {
+  grid-column: 1 / -1;
+  margin: -4px 0 0;
   color: var(--text-muted);
   font-size: 0.88rem;
 }

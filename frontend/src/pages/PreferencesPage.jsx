@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useEffect, useMemo, useState } from 'react'
-import { Button, EmptyState, ErrorState, LoadingState, TextField } from '../components/ui'
+import { Button, EmptyState, LoadingState, TextField } from '../components/ui'
 import { getPreferenceType, preferenceTypes } from '../data/preferences'
 import { useAuth, usePreferences } from '../hooks'
 
@@ -72,12 +72,12 @@ const PreferencesPage = () => {
         {isLoading ? <LoadingState title="Chargement des préférences..." /> : null}
 
         {error ? (
-          <ErrorState
-            error={error}
-            eyebrow="Préférences indisponibles"
-            onRetry={() => loadPreferences(user?.id)}
-            title="Impossible de synchroniser les préférences"
-          />
+          <div className="sync-warning" role="status">
+            <p>Synchronisation indisponible. Les préférences locales restent utilisables.</p>
+            <Button variant="secondary" onClick={() => loadPreferences(user?.id)}>
+              Réessayer
+            </Button>
+          </div>
         ) : null}
 
         {lastSavedAt && !error ? (

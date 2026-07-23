@@ -235,9 +235,11 @@ const DiscoveryPage = () => {
           }}
         >
           <option value="">Toutes les notes</option>
-          <option value="6">6/10 et plus</option>
-          <option value="7">7/10 et plus</option>
-          <option value="8">8/10 et plus</option>
+          <option value="4">4/10</option>
+          <option value="5">5/10</option>
+          <option value="6">6/10</option>
+          <option value="7">7/10</option>
+          <option value="8">8/10</option>
         </SelectField>
         <SelectField
           id="catalog-rating-filter"
@@ -252,7 +254,7 @@ const DiscoveryPage = () => {
           <option value="unrated">Non notés</option>
           <option value="rated">Déjà notés</option>
         </SelectField>
-        <p>
+        <p className="catalog-tools__count">
           {totalResults} résultat{totalResults > 1 ? 's' : ''} sur {totalCount}
         </p>
       </section>
