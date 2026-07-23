@@ -315,6 +315,17 @@ select:focus-visible {
   line-height: 1.45;
 }
 
+.form-success {
+  margin: 0;
+  border: 1px solid rgba(111, 192, 140, 0.32);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  color: #d9f3df;
+  background: rgba(111, 192, 140, 0.12);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
 .auth-card__hint {
   color: var(--text-muted);
   font-size: 0.82rem;
@@ -413,6 +424,29 @@ select:focus-visible {
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 12px;
+}
+
+.page--dev {
+  display: grid;
+  place-items: start center;
+}
+
+.dev-panel {
+  display: grid;
+  gap: 18px;
+  width: min(100%, 720px);
+  padding: clamp(24px, 5vw, 42px);
+}
+
+.dev-panel > p:not(.eyebrow, .form-success) {
+  max-width: 620px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.dev-actions {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .radio-card {
