@@ -1,6 +1,8 @@
 const MovieCard = ({ movie, compact = false, onSelect }) => {
   const badge = movie.rating ? `${movie.rating.rating}/5` : `${movie.match}% pertinent`
   const Component = onSelect ? 'button' : 'article'
+  const directorLabel = movie.directors?.length ? movie.directors.slice(0, 2).join(', ') : null
+  const voteLabel = movie.voteAverage ? `${Number(movie.voteAverage).toFixed(1)}/10` : null
 
   return (
     <Component
@@ -16,9 +18,15 @@ const MovieCard = ({ movie, compact = false, onSelect }) => {
       <div className="movie-card__content">
         <span className="match">{badge}</span>
         <h3>{movie.title}</h3>
+        {directorLabel ? <p className="movie-card__director">Par {directorLabel}</p> : null}
         <p>
           {movie.year} · {movie.genres.join(' / ')}
         </p>
+        <div className="movie-card__facts" aria-label="Informations du film">
+          <span>{movie.duration}</span>
+          {voteLabel ? <span>{voteLabel}</span> : null}
+          {movie.originalLanguage ? <span>{movie.originalLanguage.toUpperCase()}</span> : null}
+        </div>
       </div>
     </Component>
   )

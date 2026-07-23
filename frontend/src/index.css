@@ -673,7 +673,7 @@ button.movie-card:focus-visible {
 
 .movie-card__content {
   display: grid;
-  gap: 8px;
+  gap: 7px;
   padding: 16px;
   background: linear-gradient(180deg, rgba(20, 21, 27, 0.78), rgba(8, 9, 13, 0.96));
 }
@@ -687,6 +687,25 @@ button.movie-card:focus-visible {
   color: var(--text-muted);
   font-size: 0.85rem;
   line-height: 1.35;
+}
+
+.movie-card__director {
+  color: var(--text);
+}
+
+.movie-card__facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.movie-card__facts span {
+  border-radius: var(--radius-pill);
+  padding: 4px 8px;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.07);
+  font-size: 0.74rem;
+  font-weight: 760;
 }
 
 .movie-card--mint .movie-card__poster {
