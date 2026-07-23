@@ -1,6 +1,7 @@
 export { apiClient } from './apiClient'
 export { authApi } from './authApi'
 export { itemsApi } from './itemsApi'
+export { preferencesApi } from './preferencesApi'
 export { ratingsApi } from './ratingsApi'
 export { recommendationsApi } from './recommendationsApi'
 export { usersApi } from './usersApi'

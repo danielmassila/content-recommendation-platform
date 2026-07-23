@@ -1,15 +1,20 @@
 import { useNavigate } from 'react-router-dom'
-import { useMemo, useState } from 'react'
-import { Button, EmptyState, TextField } from '../components/ui'
+import { useEffect, useMemo, useState } from 'react'
+import { Button, EmptyState, ErrorState, LoadingState, TextField } from '../components/ui'
 import { getPreferenceType, preferenceTypes } from '../data/preferences'
-import { usePreferences } from '../hooks'
+import { useAuth, usePreferences } from '../hooks'
 
 const PreferencesPage = () => {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const {
     activeType,
     addPreference,
+    error,
     getEntriesByType,
+    isLoading,
+    isSaving,
+    loadPreferences,
     preferences,
     removePreference,
     setActiveType,
@@ -18,6 +23,16 @@ const PreferencesPage = () => {
   const selectedType = getPreferenceType(activeType)
   const selectedEntries = getEntriesByType(activeType)
   const hasPreferences = preferences.entries.length > 0
+
+  useEffect(() => {
+    let isCurrentRequest = true
+
+    loadPreferences(user?.id, { shouldUpdate: () => isCurrentRequest })
+
+    return () => {
+      isCurrentRequest = false
+    }
+  }, [loadPreferences, user?.id])
 
   const visibleSuggestions = useMemo(() => {
     const query = inputValue.trim().toLowerCase()
@@ -34,12 +49,12 @@ const PreferencesPage = () => {
 
   const handleSubmit = (event) => {
     event.preventDefault()
-    addPreference({ type: activeType, value: inputValue })
+    addPreference({ type: activeType, userId: user?.id, value: inputValue })
     setInputValue('')
   }
 
   const handleSuggestionClick = (suggestion) => {
-    addPreference({ type: activeType, value: suggestion })
+    addPreference({ type: activeType, userId: user?.id, value: suggestion })
     setInputValue('')
   }
 
@@ -52,6 +67,17 @@ const PreferencesPage = () => {
           Choisis un angle, ajoute quelques réponses, et on s’en servira comme point de départ pour personnaliser
           les recommandations.
         </p>
+
+        {isLoading ? <LoadingState title="Chargement des préférences..." /> : null}
+
+        {error ? (
+          <ErrorState
+            error={error}
+            eyebrow="Préférences indisponibles"
+            onRetry={() => loadPreferences(user?.id)}
+            title="Impossible de synchroniser les préférences"
+          />
+        ) : null}
 
         <div className="preference-tabs" aria-label="Types de préférences">
           {preferenceTypes.map((type) => (
@@ -104,7 +130,7 @@ const PreferencesPage = () => {
               <button
                 className="preference-chip"
                 key={entry.id}
-                onClick={() => removePreference(entry.id)}
+                onClick={() => removePreference(entry.id, user?.id)}
                 type="button"
               >
                 <span>{getPreferenceType(entry.type).label}</span>
@@ -124,8 +150,8 @@ const PreferencesPage = () => {
           <Button variant="secondary" onClick={() => navigate('/discover')}>
             Passer pour l’instant
           </Button>
-          <Button disabled={!hasPreferences} onClick={() => navigate('/discover')}>
-            Voir mes recommandations
+          <Button disabled={!hasPreferences || isSaving} onClick={() => navigate('/discover')}>
+            {isSaving ? 'Sauvegarde...' : 'Voir mes recommandations'}
           </Button>
         </div>
       </div>
