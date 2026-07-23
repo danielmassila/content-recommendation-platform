@@ -501,7 +501,7 @@ select:focus-visible {
 
 .catalog-tools {
   display: grid;
-  grid-template-columns: minmax(0, 420px) auto;
+  grid-template-columns: minmax(220px, 1.5fr) repeat(3, minmax(150px, 0.7fr)) auto;
   align-items: end;
   gap: 16px;
 }
@@ -1025,6 +1025,36 @@ button.movie-card:focus-visible {
   min-width: 0;
 }
 
+.account-settings {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.settings-card {
+  display: grid;
+  gap: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 18px;
+  background: var(--surface);
+}
+
+.settings-card h2 {
+  font-size: 1.05rem;
+}
+
+.settings-card p {
+  margin-top: 6px;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.settings-card .button {
+  justify-self: end;
+}
+
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1198,7 +1228,7 @@ button.movie-card:focus-visible {
   }
 
   .catalog-tools {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .catalog-tools p,
@@ -1206,8 +1236,16 @@ button.movie-card:focus-visible {
     justify-content: flex-start;
   }
 
+  .catalog-tools p {
+    grid-column: 1 / -1;
+  }
+
   .profile-card {
     position: static;
+  }
+
+  .account-settings {
+    grid-template-columns: 1fr;
   }
 
   .rating-history__item {
@@ -1234,6 +1272,10 @@ button.movie-card:focus-visible {
   }
 
   .preference-search {
+    grid-template-columns: 1fr;
+  }
+
+  .catalog-tools {
     grid-template-columns: 1fr;
   }
 

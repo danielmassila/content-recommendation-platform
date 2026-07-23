@@ -8,11 +8,14 @@ const normalizeSearch = (value) => {
 
 export const useMovieCatalog = ({
   genre = 'all',
+  minVote = '',
   limit = 100,
   page = 1,
   pageSize = 12,
   query = '',
+  ratingStatus = 'all',
   userId,
+  year = '',
   enabled = true,
 } = {}) => {
   const [movies, setMovies] = useState([])
@@ -76,15 +79,21 @@ export const useMovieCatalog = ({
       const matchesGenre =
         genre === 'all' ||
         movie.genres.some((movieGenre) => movieGenre.toLowerCase() === genre.toLowerCase())
+      const matchesYear = !year || String(movie.year) === String(year)
+      const matchesVote = !minVote || Number(movie.voteAverage ?? 0) >= Number(minVote)
+      const matchesRatingStatus =
+        ratingStatus === 'all' ||
+        (ratingStatus === 'rated' && movie.rating) ||
+        (ratingStatus === 'unrated' && !movie.rating)
       const matchesSearch =
         !searchQuery ||
         movie.title.toLowerCase().includes(searchQuery) ||
         movie.originalTitle?.toLowerCase().includes(searchQuery) ||
         movie.directors.some((director) => director.toLowerCase().includes(searchQuery))
 
-      return matchesGenre && matchesSearch
+      return matchesGenre && matchesYear && matchesVote && matchesRatingStatus && matchesSearch
     })
-  }, [genre, movies, query])
+  }, [genre, minVote, movies, query, ratingStatus, year])
 
   const pageCount = Math.max(1, Math.ceil(filteredMovies.length / pageSize))
   const currentPage = Math.min(Math.max(page, 1), pageCount)
@@ -110,5 +119,8 @@ export const useMovieCatalog = ({
     refresh,
     totalCount: movies.length,
     totalResults: filteredMovies.length,
+    years: [...new Set(movies.map((movie) => movie.year).filter((movieYear) => Number(movieYear)))].sort(
+      (a, b) => Number(b) - Number(a),
+    ),
   }
 }

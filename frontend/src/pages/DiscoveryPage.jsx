@@ -9,8 +9,11 @@ const DiscoveryPage = () => {
   const { user } = useAuth()
   const [catalogPage, setCatalogPage] = useState(1)
   const [catalogQuery, setCatalogQuery] = useState('')
+  const [catalogRatingStatus, setCatalogRatingStatus] = useState('all')
+  const [minVote, setMinVote] = useState('')
   const [selectedGenre, setSelectedGenre] = useState('all')
   const [selectedMovie, setSelectedMovie] = useState(null)
+  const [selectedYear, setSelectedYear] = useState('')
   const {
     clearError: clearRatingError,
     error: ratingError,
@@ -38,13 +41,17 @@ const DiscoveryPage = () => {
     refresh: refreshCatalog,
     totalCount,
     totalResults,
+    years,
   } = useMovieCatalog({
     genre: selectedGenre,
     limit: 100,
+    minVote,
     page: catalogPage,
     pageSize: 12,
     query: catalogQuery,
+    ratingStatus: catalogRatingStatus,
     userId: user?.id,
+    year: selectedYear,
   })
 
   useEffect(() => {
@@ -202,6 +209,49 @@ const DiscoveryPage = () => {
           type="search"
           value={catalogQuery}
         />
+        <SelectField
+          id="catalog-year-filter"
+          label="Année"
+          value={selectedYear}
+          onChange={(event) => {
+            setSelectedYear(event.target.value)
+            setCatalogPage(1)
+          }}
+        >
+          <option value="">Toutes les années</option>
+          {years.map((year) => (
+            <option key={year} value={year}>
+              {year}
+            </option>
+          ))}
+        </SelectField>
+        <SelectField
+          id="catalog-vote-filter"
+          label="Note minimale"
+          value={minVote}
+          onChange={(event) => {
+            setMinVote(event.target.value)
+            setCatalogPage(1)
+          }}
+        >
+          <option value="">Toutes les notes</option>
+          <option value="6">6/10 et plus</option>
+          <option value="7">7/10 et plus</option>
+          <option value="8">8/10 et plus</option>
+        </SelectField>
+        <SelectField
+          id="catalog-rating-filter"
+          label="Statut"
+          value={catalogRatingStatus}
+          onChange={(event) => {
+            setCatalogRatingStatus(event.target.value)
+            setCatalogPage(1)
+          }}
+        >
+          <option value="all">Tous</option>
+          <option value="unrated">Non notés</option>
+          <option value="rated">Déjà notés</option>
+        </SelectField>
         <p>
           {totalResults} résultat{totalResults > 1 ? 's' : ''} sur {totalCount}
         </p>
