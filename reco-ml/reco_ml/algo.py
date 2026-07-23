@@ -404,12 +404,11 @@ def build_candidates_for_user(
 ) -> set[int]:
     seen = ratings_by_user.get(user_id, {})
     seen_set = set(seen.keys())
-
-    if not seen_set:
-        return set(pop_top_items)
-
     candidates: set[int] = set(pop_top_items)
     candidates.update((preference_scores or {}).keys())
+
+    if not seen_set:
+        return candidates & all_items_set
 
     seed_items = sorted(seen.items(), key=lambda kv: kv[1], reverse=True)
     seed_items = [item_id for item_id, _ in seed_items[:max_seed_items]]
