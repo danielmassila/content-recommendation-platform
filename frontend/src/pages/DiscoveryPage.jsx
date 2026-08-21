@@ -44,7 +44,6 @@ const DiscoveryPage = () => {
     years,
   } = useMovieCatalog({
     genre: selectedGenre,
-    limit: 100,
     minVote,
     page: catalogPage,
     pageSize: 12,
@@ -205,7 +204,7 @@ const DiscoveryPage = () => {
             setCatalogQuery(event.target.value)
             setCatalogPage(1)
           }}
-          placeholder="Titre ou réalisateur..."
+          placeholder="Titre du film..."
           type="search"
           value={catalogQuery}
         />

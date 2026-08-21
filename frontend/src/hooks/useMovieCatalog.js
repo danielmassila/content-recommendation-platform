@@ -1,15 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react'
 import { getLatestRatingsByItemId, toMovieCard } from '../mappers'
 import { itemsApi, ratingsApi } from '../services'
-
-const normalizeSearch = (value) => {
-  return value.trim().toLowerCase()
-}
 
 export const useMovieCatalog = ({
   genre = 'all',
   minVote = '',
-  limit = 100,
   page = 1,
   pageSize = 12,
   query = '',
@@ -22,6 +17,11 @@ export const useMovieCatalog = ({
   const [isLoading, setIsLoading] = useState(enabled)
   const [error, setError] = useState(null)
   const [reloadKey, setReloadKey] = useState(0)
+  const deferredQuery = useDeferredValue(query.trim())
+  const [catalogPage, setCatalogPage] = useState({
+    totalItems: 0,
+    totalPages: 1,
+  })
 
   const loadCatalog = useCallback(async ({ shouldUpdate = () => true } = {}) => {
     if (!enabled) {
@@ -32,10 +32,11 @@ export const useMovieCatalog = ({
     setError(null)
 
     try {
-      const [items, ratings] = await Promise.all([
-        itemsApi.getItems({ limit }),
+      const [catalog, ratings] = await Promise.all([
+        itemsApi.getItems({ page: page - 1, query: deferredQuery, size: pageSize }),
         userId ? ratingsApi.getCurrentUserRatings({ limit: 50 }) : Promise.resolve([]),
       ])
+      const items = catalog.items ?? []
       const ratingsByItemId = getLatestRatingsByItemId(ratings)
       const mappedMovies = items.map((item, index) =>
         toMovieCard(item, null, index, ratingsByItemId.get(item.id)),
@@ -43,6 +44,10 @@ export const useMovieCatalog = ({
 
       if (shouldUpdate()) {
         setMovies(mappedMovies)
+        setCatalogPage({
+          totalItems: catalog.totalItems ?? mappedMovies.length,
+          totalPages: Math.max(catalog.totalPages ?? 1, 1),
+        })
       }
     } catch (caughtError) {
       if (shouldUpdate()) {
@@ -54,7 +59,7 @@ export const useMovieCatalog = ({
         setIsLoading(false)
       }
     }
-  }, [enabled, limit, userId])
+  }, [deferredQuery, enabled, page, pageSize, userId])
 
   const refresh = useCallback(() => {
     setReloadKey((currentKey) => currentKey + 1)
@@ -73,8 +78,6 @@ export const useMovieCatalog = ({
   }, [loadCatalog, reloadKey])
 
   const filteredMovies = useMemo(() => {
-    const searchQuery = normalizeSearch(query)
-
     return movies.filter((movie) => {
       const matchesGenre =
         genre === 'all' ||
@@ -85,29 +88,19 @@ export const useMovieCatalog = ({
         ratingStatus === 'all' ||
         (ratingStatus === 'rated' && movie.rating) ||
         (ratingStatus === 'unrated' && !movie.rating)
-      const matchesSearch =
-        !searchQuery ||
-        movie.title.toLowerCase().includes(searchQuery) ||
-        movie.originalTitle?.toLowerCase().includes(searchQuery) ||
-        movie.directors.some((director) => director.toLowerCase().includes(searchQuery))
-
-      return matchesGenre && matchesYear && matchesVote && matchesRatingStatus && matchesSearch
+      return matchesGenre && matchesYear && matchesVote && matchesRatingStatus
     })
-  }, [genre, minVote, movies, query, ratingStatus, year])
+  }, [genre, minVote, movies, ratingStatus, year])
 
-  const pageCount = Math.max(1, Math.ceil(filteredMovies.length / pageSize))
+  const pageCount = catalogPage.totalPages
   const currentPage = Math.min(Math.max(page, 1), pageCount)
-  const paginatedMovies = useMemo(() => {
-    const startIndex = (currentPage - 1) * pageSize
-    return filteredMovies.slice(startIndex, startIndex + pageSize)
-  }, [currentPage, filteredMovies, pageSize])
 
   return {
     catalogRows: [
       {
         id: 'catalog',
         title: 'Catalogue',
-        items: paginatedMovies,
+        items: filteredMovies,
       },
     ],
     currentPage,
@@ -117,7 +110,7 @@ export const useMovieCatalog = ({
     movies: filteredMovies,
     pageCount,
     refresh,
-    totalCount: movies.length,
+    totalCount: catalogPage.totalItems,
     totalResults: filteredMovies.length,
     years: [...new Set(movies.map((movie) => movie.year).filter((movieYear) => Number(movieYear)))].sort(
       (a, b) => Number(b) - Number(a),

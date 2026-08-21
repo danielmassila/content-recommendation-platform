@@ -1,8 +1,8 @@
 import { apiClient } from './apiClient'
 
 export const itemsApi = {
-  getItems({ limit = 50 } = {}) {
-    return apiClient.get('/api/v1/items', { query: { limit } })
+  getItems({ page = 0, query = '', size = 20, type = 'MOVIE' } = {}) {
+    return apiClient.get('/api/v1/items', { query: { page, query, size, type } })
   },
   getItemById(itemId) {
     return apiClient.get(`/api/v1/items/${itemId}`)
