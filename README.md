@@ -101,3 +101,6 @@ Production must run Spring with the `prod` profile and provide `APP_JWT_SECRET` 
 
 User recommendation recomputation is targeted and bounded; operational details are documented in
 [`docs/recommendation-jobs.md`](docs/recommendation-jobs.md).
+
+Request/query budgets and their regression check are described in
+[`docs/performance.md`](docs/performance.md).
