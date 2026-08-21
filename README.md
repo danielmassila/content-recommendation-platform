@@ -98,3 +98,6 @@ backend; hiding the development page in the frontend is only a usability measure
 
 Production must run Spring with the `prod` profile and provide `APP_JWT_SECRET` and
 `APP_CORS_ALLOWED_ORIGINS` through its secret/configuration manager.
+
+User recommendation recomputation is targeted and bounded; operational details are documented in
+[`docs/recommendation-jobs.md`](docs/recommendation-jobs.md).

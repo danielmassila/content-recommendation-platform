@@ -1,7 +1,7 @@
 import argparse
 import time
 
-from reco_ml.algo import recompute_all_recommendations
+from reco_ml.algo import recompute_all_recommendations, recompute_user_recommendations
 from reco_ml.db import get_db_connection
 
 
@@ -9,6 +9,11 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Recompute offline recommendations")
     parser.add_argument(
         "--n", type=int, default=20, help="Number of recommendations per user"
+    )
+    parser.add_argument(
+        "--user-id",
+        type=int,
+        help="Recompute only this user, preserving every other user's recommendations",
     )
     parser.add_argument("--k", type=int, default=50, help="Number of neighbors for CF")
     parser.add_argument(
@@ -28,12 +33,21 @@ def main() -> None:
     start = time.perf_counter()
 
     with get_db_connection() as conn:
-        recompute_all_recommendations(
-            conn,
-            n_per_user=args.n,
-            k_neighbors=args.k,
-            algo_version=args.algo,
-        )
+        if args.user_id is None:
+            recompute_all_recommendations(
+                conn,
+                n_per_user=args.n,
+                k_neighbors=args.k,
+                algo_version=args.algo,
+            )
+        else:
+            recompute_user_recommendations(
+                conn,
+                user_id=args.user_id,
+                n_per_user=args.n,
+                k_neighbors=args.k,
+                algo_version=args.algo,
+            )
 
         end = time.perf_counter()
         duration = end - start

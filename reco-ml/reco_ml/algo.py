@@ -666,3 +666,59 @@ def recompute_all_recommendations(
             )
 
     repositories.write_recommendations(conn, rows)
+
+
+def recompute_user_recommendations(
+    conn,
+    user_id: int,
+    n_per_user: int = DEMO_CONFIG["n_per_user"],
+    k_neighbors: int = DEMO_CONFIG["k_neighbors"],
+    algo_version: str = "hybrid_usercf_pop",
+) -> None:
+    user_ids = repositories.fetch_all_users(conn)
+    if user_id not in user_ids:
+        raise ValueError(f"Unknown user id: {user_id}")
+
+    item_ids = repositories.fetch_all_items(conn)
+    item_profiles = repositories.fetch_all_item_profiles(conn)
+    preferences_by_user = repositories.fetch_user_preferences(conn)
+    ratings = repositories.fetch_all_ratings(conn)
+    stats_by_items = repositories.get_stats_by_item(conn)
+    global_rating = repositories.get_global_rating(conn)
+
+    ratings_by_user = build_ratings_by_user(ratings)
+    users_by_item = build_users_by_item(ratings)
+    profile_threshold = compute_profile_maturity_threshold(ratings)
+    pop_scores_all = compute_popularity_from_stats(stats_by_items, global_rating)
+    pop_top_items = top_p_items(pop_scores_all, p=DEMO_CONFIG["pop_p"])
+    mu, b_i, b_u = compute_bias_terms(ratings, reg_item=10.0, reg_user=15.0)
+
+    recs = recommend_for_user(
+        user_id=user_id,
+        n=n_per_user,
+        k=k_neighbors,
+        ratings_by_user=ratings_by_user,
+        users_by_item=users_by_item,
+        pop_scores_all=pop_scores_all,
+        user_rating_count={user_id: len(ratings_by_user.get(user_id, {}))},
+        profile_maturity_threshold=profile_threshold,
+        all_items_set=set(item_ids),
+        pop_top_items=pop_top_items,
+        mu=mu,
+        b_i=b_i,
+        b_u=b_u,
+        preference_scores=build_preference_scores(
+            preferences_by_user.get(user_id, []), item_profiles
+        ),
+    )
+    rows = [
+        RecommendationRow(
+            user_id=user_id,
+            item_id=int(item_id),
+            score=float(score),
+            algo_version=algo_version,
+            rank=rank,
+        )
+        for rank, (item_id, score) in enumerate(recs, start=1)
+    ]
+    repositories.write_user_recommendations(conn, user_id, rows)

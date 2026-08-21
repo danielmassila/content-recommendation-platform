@@ -69,6 +69,21 @@ def write_recommendations(conn, rows: Iterable[RecommendationRow]) -> None:
         )
 
 
+def write_user_recommendations(
+    conn, user_id: int, rows: Iterable[RecommendationRow]
+) -> None:
+    infos = [(r.user_id, r.item_id, r.score, r.algo_version, r.rank) for r in rows]
+    with conn.cursor() as cur:
+        cur.execute("DELETE FROM recommendations WHERE user_id = %s;", (user_id,))
+        cur.executemany(
+            """
+            INSERT INTO recommendations (user_id, item_id, score, algo_version, rank)
+            VALUES (%s, %s, %s, %s, %s);
+            """,
+            infos,
+        )
+
+
 def get_stats_by_item(conn) -> dict[int, tuple[int, float]]:
     with conn.cursor() as cur:
         cur.execute(
