@@ -26,6 +26,7 @@ const DiscoveryPage = () => {
     isEmpty,
     isLoading,
     isRecomputing,
+    lastGeneratedAt,
     ratedRecommendationRows,
     recommendationRows,
     recompute,
@@ -59,6 +60,11 @@ const DiscoveryPage = () => {
 
   const hasRatedRecommendations = ratedRecommendationRows.some((row) => row.items.length > 0)
   const hasUnratedRecommendations = recommendationRows.some((row) => row.items.length > 0)
+  const generatedAtLabel = lastGeneratedAt
+    ? new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeStyle: 'short' }).format(
+        new Date(lastGeneratedAt),
+      )
+    : null
 
   const handleRateMovie = async (movie, grade) => {
     let rating = null
@@ -151,6 +157,22 @@ const DiscoveryPage = () => {
               {isRecomputing ? 'Génération...' : 'Recalculer mes recommandations'}
             </Button>
           </div>
+        </section>
+      ) : null}
+
+      {!isEmpty && !isLoading && !error ? (
+        <section className="recommendation-note" aria-label="Fraîcheur des recommandations">
+          <div>
+            <h2>Ta sélection personnalisée</h2>
+            <p>
+              {generatedAtLabel
+                ? `Calculée pour ton profil le ${generatedAtLabel}.`
+                : 'Calculée uniquement pour ton profil.'}
+            </p>
+          </div>
+          <Button disabled={isRecomputing} onClick={recompute} variant="secondary">
+            {isRecomputing ? 'Recalcul en cours...' : 'Actualiser ma sélection'}
+          </Button>
         </section>
       ) : null}
 

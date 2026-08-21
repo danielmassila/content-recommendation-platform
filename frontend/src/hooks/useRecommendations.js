@@ -2,6 +2,16 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { getLatestRatingsByItemId, toMovieCard } from '../mappers'
 import { itemsApi, ratingsApi, recommendationsApi } from '../services'
 
+export const getLatestGeneratedAt = (movies) => {
+  const timestamps = movies
+    .map((movie) => movie.recommendation?.generatedAt)
+    .filter(Boolean)
+    .map((value) => new Date(value).getTime())
+    .filter(Number.isFinite)
+
+  return timestamps.length ? new Date(Math.max(...timestamps)).toISOString() : null
+}
+
 export const useRecommendations = (
   userId,
   { limit = 20, includeReason = true, algo, enabled = Boolean(userId) } = {},
@@ -111,12 +121,17 @@ export const useRecommendations = (
     return movies.filter((movie) => movie.rating)
   }, [movies])
 
+  const lastGeneratedAt = useMemo(() => {
+    return getLatestGeneratedAt(movies)
+  }, [movies])
+
   return {
     error,
     featuredPick: unratedMovies[0] ?? null,
     isEmpty: !isLoading && !error && movies.length === 0,
     isLoading,
     isRecomputing,
+    lastGeneratedAt,
     movies,
     ratedRecommendationRows: [
       {
