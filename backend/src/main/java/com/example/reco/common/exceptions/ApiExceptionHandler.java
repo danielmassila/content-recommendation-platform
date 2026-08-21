@@ -40,4 +40,13 @@ public class ApiExceptionHandler {
         problemDetail.setProperty("code", "INVALID_CREDENTIALS");
         return problemDetail;
     }
+
+    @ExceptionHandler(RecommendationJobException.class)
+    public ProblemDetail handleRecommendationJobException(RecommendationJobException ex) {
+        ProblemDetail problemDetail = ProblemDetail.forStatus(HttpStatus.SERVICE_UNAVAILABLE);
+        problemDetail.setTitle("Recommendation service unavailable");
+        problemDetail.setDetail(ex.getMessage());
+        problemDetail.setProperty("code", "RECOMMENDATION_JOB_UNAVAILABLE");
+        return problemDetail;
+    }
 }

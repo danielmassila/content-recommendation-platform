@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
@@ -214,7 +215,7 @@ public class RecommendationServiceImplTest {
         RecommendationServiceImpl spyService = Mockito.spy(recommendationService);
 
         // we stub the job runner so that we don't actually execute Docker during unit tests
-        doNothing().when(spyService).runRecommendationJob("all");
+        doNothing().when(spyService).runRecommendationJob("user:1");
 
         Recommendation r1 = buildRecommendation(10L, userId, 100L, 0.91, 1, "v1", UUID.randomUUID(), null);
         Recommendation r2 = buildRecommendation(11L, userId, 101L, 0.80, 2, "v1", UUID.randomUUID(), null);
@@ -227,7 +228,7 @@ public class RecommendationServiceImplTest {
                 spyService.recomputeRecommendationsForUser(userId, 10, true, "whatever");
 
         // Assert that the repository fetched recommendations
-        verify(spyService, times(1)).runRecommendationJob("all");
+        verify(spyService, times(1)).runRecommendationJob("user:1");
         verify(recommendationRepository, times(1))
                 .findByUserIdAndAlgoVersion(eq(userId), eq("whatever"), any(Pageable.class));
 
@@ -253,6 +254,26 @@ public class RecommendationServiceImplTest {
         verify(spyService, times(1)).runRecommendationJob("all");
 
         verifyNoInteractions(recommendationRepository);
+    }
+
+    @Test
+    void shouldPassOnlyTargetUserToRecommendationWorker() {
+        class TestableRecommendationService extends RecommendationServiceImpl {
+            TestableRecommendationService(RecommendationRepository repository) {
+                super(repository);
+            }
+
+            ProcessBuilder processBuilder(String mode) {
+                return createProcessBuilder(mode);
+            }
+        }
+
+        var service = new TestableRecommendationService(recommendationRepository);
+        var userCommand = service.processBuilder("user:42").command();
+        var allCommand = service.processBuilder("all").command();
+
+        assertEquals("42", userCommand.get(userCommand.indexOf("--user-id") + 1));
+        assertFalse(allCommand.contains("--user-id"));
     }
 
 

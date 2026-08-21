@@ -1,13 +1,17 @@
 package com.example.reco.services;
 
 import com.example.reco.controllers.dto.RecommendationResponse;
+import com.example.reco.common.exceptions.RecommendationJobException;
 import com.example.reco.model.Recommendation;
 import com.example.reco.repositories.RecommendationRepository;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.ArrayList;
+import java.util.concurrent.TimeUnit;
 
 @Service
 @Transactional
@@ -17,6 +21,12 @@ public class RecommendationServiceImpl implements RecommendationService {
     private static final int MAX_LIMIT = 50;
 
     private final RecommendationRepository recommendationRepository;
+
+    @Value("${app.recommendations.job-timeout-seconds:120}")
+    private long jobTimeoutSeconds;
+
+    @Value("${app.recommendations.compose-file:../docker-compose.yml}")
+    private String composeFile;
 
     public RecommendationServiceImpl(RecommendationRepository recommendationRepository) {
         this.recommendationRepository = recommendationRepository;
@@ -61,9 +71,7 @@ public class RecommendationServiceImpl implements RecommendationService {
 
     @Override
     public List<RecommendationResponse> recomputeRecommendationsForUser(Long userId, int limit, boolean includeReason, String algo) {
-        // TO DO : for V2, change so that we compute only for one user
-        // instead of recomputing all recommendations
-        runRecommendationJob("all");
+        runRecommendationJob("user:" + userId);
         return getUserRecommendations(userId, limit, includeReason, algo);
     }
 
@@ -77,37 +85,48 @@ public class RecommendationServiceImpl implements RecommendationService {
         try {
             ProcessBuilder pb = createProcessBuilder(mode);
             pb.redirectErrorStream(true);
+            pb.redirectOutput(ProcessBuilder.Redirect.INHERIT);
 
             Process p = startProcess(pb);
 
-            String output;
-            try (var reader = new java.io.BufferedReader(new java.io.InputStreamReader(p.getInputStream()))) {
-                output = reader.lines().reduce("", (a, b) -> a + b + "\n");
+            long timeout = jobTimeoutSeconds > 0 ? jobTimeoutSeconds : 120;
+            if (!p.waitFor(timeout, TimeUnit.SECONDS)) {
+                p.destroyForcibly();
+                throw new RecommendationJobException("Recommendation computation timed out");
             }
 
-            int exit = p.waitFor();
+            int exit = p.exitValue();
 
             if (exit != 0) {
-                throw new RuntimeException("Reco job failed (exit=" + exit + ")\nOutput:\n" + output);
+                throw new RecommendationJobException("Recommendation computation failed with exit code " + exit);
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new RuntimeException("Reco job interrupted", e);
+            throw new RecommendationJobException("Recommendation computation interrupted", e);
+        } catch (RecommendationJobException e) {
+            throw e;
         } catch (Exception e) {
-            throw new RuntimeException("Failed to run reco job", e);
+            throw new RecommendationJobException("Unable to start recommendation computation", e);
         }
     }
 
     // testables hooks
     protected ProcessBuilder createProcessBuilder(String mode) {
-        return new ProcessBuilder(
-                "docker", "compose", "run", "--rm",
+        List<String> command = new ArrayList<>(List.of(
+                "docker", "compose", "-f",
+                composeFile == null || composeFile.isBlank() ? "../docker-compose.yml" : composeFile,
+                "run", "--rm",
                 "reco-job",
                 "python", "-m", "jobs.run_reco",
                 "--n", "20",
                 "--k", "50",
                 "--algo", "hybrid_usercf_pop"
-        );
+        ));
+        if (mode.startsWith("user:")) {
+            command.add("--user-id");
+            command.add(mode.substring("user:".length()));
+        }
+        return new ProcessBuilder(command);
     }
 
     protected Process startProcess(ProcessBuilder pb) throws Exception {
