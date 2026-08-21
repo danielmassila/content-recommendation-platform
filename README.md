@@ -79,3 +79,19 @@ make py-enrich-tmdb
 
 The TMDB job enriches existing `items.metadata` with poster paths, overview, release date,
 runtime, popularity and vote averages when a `tmdbId` is available.
+
+## Local administrator
+
+Every registered account starts with the `USER` role. For local development, promote a
+trusted account explicitly after registration:
+
+```bash
+docker compose exec db psql -U reco_user -d reco_db \
+  -c "UPDATE users SET role = 'ADMIN' WHERE email = 'admin@example.com';"
+```
+
+Restart the session after changing a role. Administrative routes are protected by the
+backend; hiding the development page in the frontend is only a usability measure.
+
+Production must run Spring with the `prod` profile and provide `APP_JWT_SECRET` and
+`APP_CORS_ALLOWED_ORIGINS` through its secret/configuration manager.
