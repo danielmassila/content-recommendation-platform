@@ -31,4 +31,13 @@ public class ApiExceptionHandler {
         problemDetail.setDetail(ex.getMessage());
         return problemDetail;
     }
+
+    @ExceptionHandler(UnauthorizedException.class)
+    public ProblemDetail handleUnauthorizedException(UnauthorizedException ex) {
+        ProblemDetail problemDetail = ProblemDetail.forStatus(HttpStatus.UNAUTHORIZED);
+        problemDetail.setTitle("Unauthorized");
+        problemDetail.setDetail(ex.getMessage());
+        problemDetail.setProperty("code", "INVALID_CREDENTIALS");
+        return problemDetail;
+    }
 }

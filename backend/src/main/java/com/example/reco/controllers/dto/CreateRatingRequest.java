@@ -6,25 +6,14 @@ import java.math.BigDecimal;
 
 public class CreateRatingRequest {
 
-    @NotNull(message = "userId is required")
-    private Long userId;
-
+    @NotNull(message = "grade is required")
     private BigDecimal grade;
 
     public CreateRatingRequest() {
     }
 
-    public CreateRatingRequest(Long userId, BigDecimal grade) {
-        this.userId = userId;
+    public CreateRatingRequest(BigDecimal grade) {
         this.grade = grade;
-    }
-
-    public Long getUserId() {
-        return userId;
-    }
-
-    public void setUserId(Long userId) {
-        this.userId = userId;
     }
 
     public BigDecimal getGrade() {

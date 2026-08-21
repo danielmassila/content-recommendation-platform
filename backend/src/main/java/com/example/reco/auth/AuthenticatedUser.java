@@ -1,4 +1,6 @@
 package com.example.reco.auth;
 
-public record AuthenticatedUser(Long id, String email) {
+import com.example.reco.model.UserRole;
+
+public record AuthenticatedUser(Long id, String email, UserRole role) {
 }

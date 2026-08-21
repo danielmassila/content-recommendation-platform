@@ -1,15 +1,11 @@
 package com.example.reco.controllers;
 
 import com.example.reco.auth.AuthService;
-import com.example.reco.auth.AuthenticatedUser;
 import com.example.reco.controllers.dto.AuthRequest;
 import com.example.reco.controllers.dto.AuthResponse;
 import com.example.reco.controllers.dto.RegisterRequest;
-import com.example.reco.controllers.dto.UserResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -37,8 +33,4 @@ public class AuthController {
         return authService.login(request);
     }
 
-    @GetMapping("/me")
-    public UserResponse me(@AuthenticationPrincipal AuthenticatedUser user) {
-        return authService.toUserResponse(user);
-    }
 }
