@@ -219,7 +219,7 @@ public class RecommendationServiceImplTest {
         Recommendation r1 = buildRecommendation(10L, userId, 100L, 0.91, 1, "v1", UUID.randomUUID(), null);
         Recommendation r2 = buildRecommendation(11L, userId, 101L, 0.80, 2, "v1", UUID.randomUUID(), null);
 
-        when(recommendationRepository.findByUserId(eq(userId), any(Pageable.class)))
+        when(recommendationRepository.findByUserIdAndAlgoVersion(eq(userId), eq("whatever"), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(r1, r2)));
 
         // Act : trigger recompute for this user
@@ -228,7 +228,8 @@ public class RecommendationServiceImplTest {
 
         // Assert that the repository fetched recommendations
         verify(spyService, times(1)).runRecommendationJob("all");
-        verify(recommendationRepository, times(1)).findByUserId(eq(userId), any(Pageable.class));
+        verify(recommendationRepository, times(1))
+                .findByUserIdAndAlgoVersion(eq(userId), eq("whatever"), any(Pageable.class));
 
         assertNotNull(res);
         assertEquals(2, res.size());

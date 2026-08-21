@@ -84,10 +84,10 @@ public class RatingServiceImplTest {
         assertEquals(10L, response.get(0).getId());
         assertEquals(1L, response.get(0).getUserId());
         assertEquals(2L, response.get(0).getItemId());
-        assertEquals((short) 4, response.get(0).getRating());
+        assertEquals(BigDecimal.valueOf(4), response.get(0).getRating());
 
         assertEquals(11L, response.get(1).getId());
-        assertEquals((short) 5, response.get(1).getRating());
+        assertEquals(BigDecimal.valueOf(5), response.get(1).getRating());
 
         verify(ratingRepository).findAll(any(Pageable.class));
     }
@@ -193,7 +193,7 @@ public class RatingServiceImplTest {
     }
 
     @Test
-    void shouldThrowConflictWhenUserAlreadyRatedItem() {
+    void shouldUpdateRatingWhenUserAlreadyRatedItem() {
         Long userId = 1L;
         Long itemId = 1L;
         BigDecimal grade = BigDecimal.valueOf(4);
@@ -204,22 +204,21 @@ public class RatingServiceImplTest {
         User user = new User();
         user.setId(userId);
 
-        Rating existingRating = new Rating();
+        Rating existingRating = new Rating(user, item, BigDecimal.valueOf(2));
         existingRating.setId(99L);
 
         when(itemRepository.findById(itemId)).thenReturn(Optional.of(item));
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         when(ratingRepository.findByUserIdAndItemId(userId, itemId)).thenReturn(Optional.of(existingRating));
+        when(ratingRepository.save(existingRating)).thenReturn(existingRating);
 
-        assertThrowsExactly(
-                ConflictException.class,
-                () -> ratingService.rateItem(itemId, userId, grade)
-        );
+        RatingResponse response = ratingService.rateItem(itemId, userId, grade);
 
         verify(itemRepository).findById(itemId);
         verify(userRepository).findById(userId);
         verify(ratingRepository).findByUserIdAndItemId(userId, itemId);
-        verify(ratingRepository, never()).save(any(Rating.class));
+        verify(ratingRepository).save(existingRating);
+        assertEquals(grade, response.getRating());
     }
 
 
