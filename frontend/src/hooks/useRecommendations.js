@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { getLatestRatingsByItemId, toMovieCard } from '../mappers'
-import { itemsApi, ratingsApi, recommendationsApi } from '../services'
+import { ratingsApi, recommendationsApi } from '../services'
 
 export const getLatestGeneratedAt = (movies) => {
   const timestamps = movies
@@ -12,6 +12,15 @@ export const getLatestGeneratedAt = (movies) => {
   return timestamps.length ? new Date(Math.max(...timestamps)).toISOString() : null
 }
 
+export const mapRecommendationItems = (recommendations, ratingsByItemId) => {
+  return [...recommendations]
+    .sort((a, b) => a.rank - b.rank)
+    .map((recommendation, index) => {
+      const item = recommendation.item
+      return toMovieCard(item, recommendation, index, ratingsByItemId.get(item.id))
+    })
+}
+
 export const useRecommendations = (
   userId,
   { limit = 20, includeReason = true, algo, enabled = Boolean(userId) } = {},
@@ -21,17 +30,6 @@ export const useRecommendations = (
   const [isRecomputing, setIsRecomputing] = useState(false)
   const [error, setError] = useState(null)
   const [reloadKey, setReloadKey] = useState(0)
-
-  const mapRecommendations = useCallback(async (recommendations, ratingsByItemId) => {
-    return Promise.all(
-      [...recommendations]
-        .sort((a, b) => a.rank - b.rank)
-        .map(async (recommendation, index) => {
-          const item = await itemsApi.getItemById(recommendation.itemId)
-          return toMovieCard(item, recommendation, index, ratingsByItemId.get(item.id))
-        }),
-    )
-  }, [])
 
   const loadRecommendations = useCallback(async ({ shouldUpdate = () => true } = {}) => {
     if (!enabled) {
@@ -52,7 +50,7 @@ export const useRecommendations = (
       ])
       const ratingsByItemId = getLatestRatingsByItemId(ratings)
 
-      const moviesWithItems = await mapRecommendations(recommendations, ratingsByItemId)
+      const moviesWithItems = mapRecommendationItems(recommendations, ratingsByItemId)
 
       if (shouldUpdate()) {
         setMovies(moviesWithItems)
@@ -67,7 +65,7 @@ export const useRecommendations = (
         setIsLoading(false)
       }
     }
-  }, [algo, enabled, includeReason, limit, mapRecommendations])
+  }, [algo, enabled, includeReason, limit])
 
   const recompute = useCallback(async () => {
     if (!enabled) {
@@ -87,7 +85,7 @@ export const useRecommendations = (
         ratingsApi.getCurrentUserRatings({ limit: 50 }),
       ])
       const ratingsByItemId = getLatestRatingsByItemId(ratings)
-      const moviesWithItems = await mapRecommendations(recommendations, ratingsByItemId)
+      const moviesWithItems = mapRecommendationItems(recommendations, ratingsByItemId)
       setMovies(moviesWithItems)
     } catch (caughtError) {
       setError(caughtError)
@@ -95,7 +93,7 @@ export const useRecommendations = (
     } finally {
       setIsRecomputing(false)
     }
-  }, [algo, enabled, includeReason, limit, mapRecommendations])
+  }, [algo, enabled, includeReason, limit])
 
   const refresh = useCallback(() => {
     setReloadKey((currentKey) => currentKey + 1)

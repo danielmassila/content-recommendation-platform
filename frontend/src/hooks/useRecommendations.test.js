@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { getLatestGeneratedAt } from './useRecommendations'
+import { getLatestGeneratedAt, mapRecommendationItems } from './useRecommendations'
 
 describe('recommendation freshness', () => {
   it('keeps ISO dates sortable for the latest generated recommendation', () => {
@@ -14,5 +14,22 @@ describe('recommendation freshness', () => {
 
   it('ignores invalid or absent generation dates', () => {
     expect(getLatestGeneratedAt([{ recommendation: { generatedAt: 'invalid' } }, {}])).toBeNull()
+  })
+
+  it('maps embedded items without an additional API lookup', () => {
+    const movies = mapRecommendationItems(
+      [
+        {
+          itemId: 10,
+          rank: 1,
+          score: 0.9,
+          item: { id: 10, title: 'Dune', type: 'MOVIE', metadata: '{"year":2021}' },
+        },
+      ],
+      new Map(),
+    )
+
+    expect(movies).toHaveLength(1)
+    expect(movies[0]).toMatchObject({ id: 10, title: 'Dune', year: 2021, match: 90 })
   })
 })
