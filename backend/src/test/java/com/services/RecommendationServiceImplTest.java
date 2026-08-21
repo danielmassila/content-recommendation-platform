@@ -57,6 +57,9 @@ public class RecommendationServiceImplTest {
 
         Item it = new Item();
         it.setId(itemId);
+        it.setTitle("Item " + itemId);
+        it.setType(com.example.reco.model.ItemType.MOVIE);
+        it.setMetadata("{\"year\":2024}");
 
         Recommendation r = new Recommendation();
         r.setId(recoId);
@@ -100,6 +103,7 @@ public class RecommendationServiceImplTest {
         assertEquals(10L, response.get(0).getId());
         assertEquals(1L, response.get(0).getUserId());
         assertEquals(100L, response.get(0).getItemId());
+        assertEquals("Item 100", response.get(0).getItem().getTitle());
 
         assertEquals(11L, response.get(1).getId());
         assertEquals(2L, response.get(1).getUserId());
@@ -146,6 +150,9 @@ public class RecommendationServiceImplTest {
         u.setId(userId);
         Item it = new Item();
         it.setId(100L);
+        it.setTitle("Item 100");
+        it.setType(com.example.reco.model.ItemType.MOVIE);
+        it.setMetadata("{}");
 
         Recommendation r = new Recommendation();
         r.setId(10L);
@@ -167,6 +174,7 @@ public class RecommendationServiceImplTest {
         assertEquals(10L, res.get(0).getId());
         assertEquals(userId, res.get(0).getUserId());
         assertEquals(100L, res.get(0).getItemId());
+        assertEquals("Item 100", res.get(0).getItem().getTitle());
         assertEquals(0.9, res.get(0).getScore());
         assertEquals(1, res.get(0).getRank());
         assertNull(res.get(0).getReason()); // V1

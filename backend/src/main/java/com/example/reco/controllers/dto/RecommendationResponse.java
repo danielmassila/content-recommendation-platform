@@ -14,6 +14,7 @@ public class RecommendationResponse {
     private final UUID runId;
     private final String reason;
     private final Instant generatedAt;
+    private final ItemResponse item;
 
     public RecommendationResponse(
             Long id,
@@ -24,7 +25,8 @@ public class RecommendationResponse {
             String algoVersion,
             UUID runId,
             String reason,
-            Instant generatedAt
+            Instant generatedAt,
+            ItemResponse item
     ) {
         this.id = id;
         this.userId = userId;
@@ -35,6 +37,7 @@ public class RecommendationResponse {
         this.runId = runId;
         this.reason = reason;
         this.generatedAt = generatedAt;
+        this.item = item;
     }
 
     public Long getId() {
@@ -71,5 +74,9 @@ public class RecommendationResponse {
 
     public Instant getGeneratedAt() {
         return generatedAt;
+    }
+
+    public ItemResponse getItem() {
+        return item;
     }
 }

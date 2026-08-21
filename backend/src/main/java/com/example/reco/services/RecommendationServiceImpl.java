@@ -1,6 +1,7 @@
 package com.example.reco.services;
 
 import com.example.reco.controllers.dto.RecommendationResponse;
+import com.example.reco.controllers.dto.ItemResponse;
 import com.example.reco.common.exceptions.RecommendationJobException;
 import com.example.reco.model.Recommendation;
 import com.example.reco.repositories.RecommendationRepository;
@@ -143,7 +144,13 @@ public class RecommendationServiceImpl implements RecommendationService {
                 recommendation.getAlgoVersion(),
                 recommendation.getRunId(),
                 includeReason ? recommendation.getReason() : null,
-                recommendation.getGeneratedAt()
+                recommendation.getGeneratedAt(),
+                new ItemResponse(
+                        recommendation.getItem().getId(),
+                        recommendation.getItem().getTitle(),
+                        recommendation.getItem().getType(),
+                        recommendation.getItem().getMetadata()
+                )
         );
     }
 
