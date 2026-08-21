@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import time
+from datetime import datetime, timezone
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -24,7 +25,7 @@ def _load_metadata(raw_metadata) -> dict:
     return json.loads(raw_metadata)
 
 
-def _request_tmdb_movie(tmdb_id: int, api_key: str) -> dict:
+def _request_tmdb_movie(tmdb_id: int, api_key: str, max_attempts: int = 3) -> dict:
     query = urllib.parse.urlencode(
         {
             "api_key": api_key,
@@ -34,8 +35,23 @@ def _request_tmdb_movie(tmdb_id: int, api_key: str) -> dict:
     )
     url = f"{TMDB_API_BASE_URL}/movie/{tmdb_id}?{query}"
 
-    with urllib.request.urlopen(url, timeout=15) as response:
-        return json.loads(response.read().decode("utf-8"))
+    request = urllib.request.Request(
+        url,
+        headers={"Accept": "application/json", "User-Agent": "content-recommendation-platform/1.0"},
+    )
+    for attempt in range(max_attempts):
+        try:
+            with urllib.request.urlopen(request, timeout=15) as response:
+                return json.loads(response.read().decode("utf-8"))
+        except urllib.error.HTTPError as error:
+            is_retryable = error.code == 429 or error.code >= 500
+            if not is_retryable or attempt == max_attempts - 1:
+                raise
+            retry_after = error.headers.get("Retry-After") if error.headers else None
+            delay = float(retry_after) if retry_after else 2 ** attempt
+            time.sleep(delay)
+
+    raise RuntimeError("TMDB request failed without an HTTP response")
 
 
 def _to_tmdb_metadata(payload: dict) -> dict:
@@ -81,6 +97,7 @@ def _merge_metadata(current_metadata: dict, tmdb_payload: dict) -> dict:
     tmdb_metadata = _to_tmdb_metadata(tmdb_payload)
     merged = {**current_metadata, **{k: v for k, v in tmdb_metadata.items() if v is not None}}
     merged["source"] = "movielens+tmdb"
+    merged["tmdbEnrichedAt"] = datetime.now(timezone.utc).isoformat()
     return merged
 
 
@@ -122,6 +139,7 @@ def main() -> None:
     api_key = get_env("TMDB_API_KEY")
     limit = int(get_env("TMDB_ENRICH_LIMIT", "100"))
     delay_seconds = float(get_env("TMDB_REQUEST_DELAY_SECONDS", "0.25"))
+    batch_size = max(1, int(get_env("TMDB_ENRICH_BATCH_SIZE", "25")))
 
     enriched_count = 0
     skipped_count = 0
@@ -137,14 +155,21 @@ def main() -> None:
                 enriched_metadata = _merge_metadata(metadata, payload)
                 _update_item_metadata(conn, item_id, enriched_metadata)
                 enriched_count += 1
+                if enriched_count % batch_size == 0:
+                    conn.commit()
             except urllib.error.HTTPError as error:
                 skipped_count += 1
                 print(f"TMDB skip item_id={item_id} tmdb_id={tmdb_id}: HTTP {error.code}")
             except urllib.error.URLError as error:
                 skipped_count += 1
                 print(f"TMDB skip item_id={item_id} tmdb_id={tmdb_id}: {error.reason}")
+            except (ValueError, json.JSONDecodeError) as error:
+                skipped_count += 1
+                print(f"TMDB skip item_id={item_id} tmdb_id={tmdb_id}: invalid payload ({error})")
 
             time.sleep(delay_seconds)
+
+        conn.commit()
 
     print(f"TMDB enrichment DONE | enriched={enriched_count}, skipped={skipped_count}")
 

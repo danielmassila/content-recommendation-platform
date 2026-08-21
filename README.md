@@ -80,6 +80,9 @@ make py-enrich-tmdb
 The TMDB job enriches existing `items.metadata` with poster paths, overview, release date,
 runtime, popularity and vote averages when a `tmdbId` is available.
 
+The rationale, failure behavior and scaling boundary of this hybrid local/API model are
+documented in [`docs/catalog-data.md`](docs/catalog-data.md).
+
 ## Local administrator
 
 Every registered account starts with the `USER` role. For local development, promote a
