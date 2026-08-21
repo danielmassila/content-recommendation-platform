@@ -2,6 +2,8 @@ package com.example.reco.controllers;
 
 import com.example.reco.controllers.dto.CreateItemRequest;
 import com.example.reco.controllers.dto.ItemResponse;
+import com.example.reco.controllers.dto.ItemPageResponse;
+import com.example.reco.model.ItemType;
 import com.example.reco.services.ItemService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -12,8 +14,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/items")
@@ -31,8 +31,13 @@ public class ItemsController {
     }
 
     @GetMapping
-    public List<ItemResponse> getAllItems(@RequestParam(defaultValue = "50") int limit) {
-        return itemService.getAllItems(limit);
+    public ItemPageResponse getAllItems(
+            @RequestParam(defaultValue = "") String query,
+            @RequestParam(required = false) ItemType type,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        return itemService.searchItems(query, type, page, size);
     }
 
     @PostMapping

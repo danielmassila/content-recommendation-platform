@@ -2,13 +2,13 @@ package com.example.reco.services;
 
 import com.example.reco.controllers.dto.CreateItemRequest;
 import com.example.reco.controllers.dto.ItemResponse;
-
-import java.util.List;
+import com.example.reco.controllers.dto.ItemPageResponse;
+import com.example.reco.model.ItemType;
 
 public interface ItemService {
     ItemResponse createItem(CreateItemRequest createItemRequest);
 
     ItemResponse getItemById(Long id);
 
-    List<ItemResponse> getAllItems(int limit);
+    ItemPageResponse searchItems(String query, ItemType type, int page, int size);
 }

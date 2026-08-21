@@ -71,10 +71,10 @@ class ItemServiceImplTest {
     void shouldReturnEmptyWhenEmptyItemsTable() {
         when(itemRepository.findAll(any(Pageable.class))).thenReturn(Page.empty());
 
-        var response = itemService.getAllItems(50);
+        var response = itemService.searchItems("", null, 0, 50);
 
         assertNotNull(response);
-        assertTrue(response.isEmpty());
+        assertTrue(response.items().isEmpty());
         verify(itemRepository).findAll(any(Pageable.class));
     }
 
@@ -95,20 +95,20 @@ class ItemServiceImplTest {
         when(itemRepository.findAll(any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(item1, item2)));
 
-        var response = itemService.getAllItems(10);
+        var response = itemService.searchItems("", null, 0, 10);
 
         assertNotNull(response);
-        assertEquals(2, response.size());
+        assertEquals(2, response.items().size());
 
-        assertEquals(1L, response.get(0).getId());
-        assertEquals("Item 1", response.get(0).getTitle());
-        assertEquals(ItemType.MOVIE, response.get(0).getType());
-        assertEquals("{\"a\":1}", response.get(0).getMetadata());
+        assertEquals(1L, response.items().get(0).getId());
+        assertEquals("Item 1", response.items().get(0).getTitle());
+        assertEquals(ItemType.MOVIE, response.items().get(0).getType());
+        assertEquals("{\"a\":1}", response.items().get(0).getMetadata());
 
-        assertEquals(2L, response.get(1).getId());
-        assertEquals("Item 2", response.get(1).getTitle());
-        assertEquals(ItemType.MOVIE, response.get(1).getType());
-        assertEquals("{\"b\":2}", response.get(1).getMetadata());
+        assertEquals(2L, response.items().get(1).getId());
+        assertEquals("Item 2", response.items().get(1).getTitle());
+        assertEquals(ItemType.MOVIE, response.items().get(1).getType());
+        assertEquals("{\"b\":2}", response.items().get(1).getMetadata());
 
         verify(itemRepository).findAll(any(Pageable.class));
     }
@@ -117,7 +117,7 @@ class ItemServiceImplTest {
     void shouldCapItemsLimitWhenLimitIsTooHigh() {
         when(itemRepository.findAll(any(Pageable.class))).thenReturn(Page.empty());
 
-        itemService.getAllItems(99999);
+        itemService.searchItems("", null, 0, 99999);
 
         ArgumentCaptor<Pageable> captor = ArgumentCaptor.forClass(Pageable.class);
         verify(itemRepository).findAll(captor.capture());
@@ -131,14 +131,35 @@ class ItemServiceImplTest {
     void shouldUseItemsDefaultLimitIfLimitInvalid() {
         when(itemRepository.findAll(any(Pageable.class))).thenReturn(Page.empty());
 
-        itemService.getAllItems(-1);
+        itemService.searchItems("", null, -1, -1);
 
         ArgumentCaptor<Pageable> captor = ArgumentCaptor.forClass(Pageable.class);
         verify(itemRepository).findAll(captor.capture());
 
         Pageable pageableUsed = captor.getValue();
         assertEquals(0, pageableUsed.getPageNumber());
-        assertEquals(50, pageableUsed.getPageSize());
+        assertEquals(20, pageableUsed.getPageSize());
+    }
+
+    @Test
+    void shouldSearchMoviesByTitle() {
+        when(itemRepository.findByTypeAndTitleContainingIgnoreCase(
+                org.mockito.ArgumentMatchers.eq(ItemType.MOVIE),
+                org.mockito.ArgumentMatchers.eq("dune"),
+                any(Pageable.class)
+        )).thenReturn(Page.empty());
+
+        itemService.searchItems("  dune  ", ItemType.MOVIE, 2, 12);
+
+        ArgumentCaptor<Pageable> captor = ArgumentCaptor.forClass(Pageable.class);
+        verify(itemRepository).findByTypeAndTitleContainingIgnoreCase(
+                org.mockito.ArgumentMatchers.eq(ItemType.MOVIE),
+                org.mockito.ArgumentMatchers.eq("dune"),
+                captor.capture()
+        );
+        assertEquals(2, captor.getValue().getPageNumber());
+        assertEquals(12, captor.getValue().getPageSize());
+        assertEquals("title: ASC", captor.getValue().getSort().toString());
     }
 
     @Test
