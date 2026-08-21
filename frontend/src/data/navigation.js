@@ -3,5 +3,5 @@ export const NAV_ITEMS = [
   { id: 'preferences', label: 'Préférences', path: '/preferences' },
   { id: 'discovery', label: 'Catalogue', path: '/discover' },
   { id: 'profile', label: 'Profil', path: '/profile' },
-  { id: 'dev', label: 'Dev', path: '/dev' },
+  { id: 'dev', label: 'Dev', path: '/dev', roles: ['ADMIN'] },
 ]

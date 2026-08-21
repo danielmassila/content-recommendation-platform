@@ -31,8 +31,8 @@ export const useUserProfile = (userId, { ratingsLimit = 10, enabled = Boolean(us
 
     try {
       const [loadedUser, ratings] = await Promise.all([
-        usersApi.getUserById(userId),
-        ratingsApi.getUserRatings(userId, { limit: ratingsLimit }),
+        usersApi.getCurrentUser(),
+        ratingsApi.getCurrentUserRatings({ limit: ratingsLimit }),
       ])
       const uniqueRatings = [...getLatestRatingsByItemId(ratings).values()]
 
@@ -58,7 +58,7 @@ export const useUserProfile = (userId, { ratingsLimit = 10, enabled = Boolean(us
         setIsLoading(false)
       }
     }
-  }, [enabled, ratingsLimit, userId])
+  }, [enabled, ratingsLimit])
 
   const refresh = useCallback(() => {
     setReloadKey((currentKey) => currentKey + 1)

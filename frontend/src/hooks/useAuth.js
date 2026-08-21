@@ -8,7 +8,7 @@ import {
   useState,
 } from 'react'
 import { authApi } from '../services/authApi'
-import { setApiAccessToken } from '../services/apiClient'
+import { setApiAccessToken, setUnauthorizedHandler } from '../services/apiClient'
 
 const STORAGE_KEY = 'content-reco-session'
 
@@ -21,6 +21,7 @@ const getInitials = (email) => {
 const enrichUser = (user) => {
   return {
     ...user,
+    role: user.role ?? 'USER',
     initials: getInitials(user.email),
     name: user.username || user.email.split('@')[0],
   }
@@ -40,6 +41,16 @@ export const AuthProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(Boolean(session.accessToken))
   const [error, setError] = useState(null)
   const user = session.user ? enrichUser(session.user) : null
+
+  const clearSession = useCallback(() => {
+    setApiAccessToken(null)
+    setSession({ accessToken: null, user: null })
+  }, [])
+
+  useEffect(() => {
+    setUnauthorizedHandler(() => clearSession())
+    return () => setUnauthorizedHandler(null)
+  }, [clearSession])
 
   useEffect(() => {
     setApiAccessToken(session.accessToken)
@@ -71,7 +82,7 @@ export const AuthProvider = ({ children }) => {
         }
       } catch (refreshError) {
         if (isActive) {
-          setSession({ accessToken: null, user: null })
+          clearSession()
           setError(refreshError.message)
         }
       } finally {
@@ -86,7 +97,7 @@ export const AuthProvider = ({ children }) => {
     return () => {
       isActive = false
     }
-  }, [session.accessToken])
+  }, [clearSession, session.accessToken])
 
   const signIn = useCallback(async ({ email, password }) => {
     setError(null)
@@ -124,9 +135,8 @@ export const AuthProvider = ({ children }) => {
 
   const signOut = useCallback(() => {
     setError(null)
-    setApiAccessToken(null)
-    setSession({ accessToken: null, user: null })
-  }, [])
+    clearSession()
+  }, [clearSession])
 
   const updateCurrentUser = useCallback((nextUser) => {
     setSession((currentSession) => ({

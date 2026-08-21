@@ -23,7 +23,7 @@ const AccountSettings = ({ onClose, onUserUpdate, user }) => {
     setIsAccountSaving(true)
 
     try {
-      const updatedUser = await usersApi.updateUser(user.id, accountForm)
+      const updatedUser = await usersApi.updateCurrentUser(accountForm)
       onUserUpdate(updatedUser)
       setAccountMessage('Profil mis à jour.')
     } catch (caughtError) {
@@ -40,7 +40,7 @@ const AccountSettings = ({ onClose, onUserUpdate, user }) => {
     setIsPasswordSaving(true)
 
     try {
-      await usersApi.changePassword(user.id, passwordForm)
+      await usersApi.changeCurrentUserPassword(passwordForm)
       setPasswordForm({ currentPassword: '', newPassword: '' })
       setPasswordMessage('Mot de passe mis à jour.')
     } catch (caughtError) {

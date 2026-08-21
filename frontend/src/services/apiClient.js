@@ -1,9 +1,23 @@
 import { getEnvironment } from '../config/environment'
 
 let accessToken = null
+let unauthorizedHandler = null
+
+export class ApiError extends Error {
+  constructor(message, { code, status } = {}) {
+    super(message)
+    this.name = 'ApiError'
+    this.code = code
+    this.status = status
+  }
+}
 
 export const setApiAccessToken = (token) => {
   accessToken = token
+}
+
+export const setUnauthorizedHandler = (handler) => {
+  unauthorizedHandler = handler
 }
 
 const getApiBaseUrl = () => {
@@ -38,7 +52,12 @@ const parseResponse = async (response) => {
         ? payload.message ?? payload.detail ?? payload.title ?? response.statusText
         : payload || response.statusText
 
-    throw new Error(message)
+    const code = typeof payload === 'object' && payload !== null ? payload.code : undefined
+    const error = new ApiError(message, { code, status: response.status })
+    if (response.status === 401) {
+      unauthorizedHandler?.(error)
+    }
+    throw error
   }
 
   return payload

@@ -8,6 +8,6 @@ export const authApi = {
     return apiClient.post('/api/v1/auth/register', { email, password, username })
   },
   getCurrentUser() {
-    return apiClient.get('/api/v1/auth/me')
+    return apiClient.get('/api/v1/me')
   },
 }

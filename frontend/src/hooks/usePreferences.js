@@ -38,7 +38,7 @@ export const usePreferences = () => {
     setError(null)
 
     try {
-      const loadedPreferences = await preferencesApi.getUserPreferences(userId)
+      const loadedPreferences = await preferencesApi.getCurrentUserPreferences()
       if (shouldUpdate()) {
         setPreferences({
           entries: loadedPreferences.map((preference) => ({
@@ -68,7 +68,7 @@ export const usePreferences = () => {
     setError(null)
 
     try {
-      await preferencesApi.replaceUserPreferences(userId, nextPreferences.entries)
+      await preferencesApi.replaceCurrentUserPreferences(nextPreferences.entries)
       setLastSavedAt(new Date())
     } catch (caughtError) {
       setError(caughtError)

@@ -19,9 +19,7 @@ export const useMovieRating = (userId) => {
     setError(null)
 
     try {
-      const rating = movie.rating?.id
-        ? await ratingsApi.updateRating(movie.rating.id, grade)
-        : await ratingsApi.rateItem(movie.id, { userId, grade })
+      const rating = await ratingsApi.rateItem(movie.id, grade)
       setLastRating({ movieId: movie.id, rating })
       return rating
     } catch (caughtError) {

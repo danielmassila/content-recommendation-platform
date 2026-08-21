@@ -4,17 +4,17 @@ export const usersApi = {
   getUsers({ limit = 50 } = {}) {
     return apiClient.get('/api/v1/users', { query: { limit } })
   },
-  getUserById(userId) {
-    return apiClient.get(`/api/v1/users/${userId}`)
+  getCurrentUser() {
+    return apiClient.get('/api/v1/me')
   },
   createUser({ email }) {
     return apiClient.post('/api/v1/users', { email })
   },
-  updateUser(userId, { email, username }) {
-    return apiClient.put(`/api/v1/users/${userId}`, { email, username })
+  updateCurrentUser({ email, username }) {
+    return apiClient.put('/api/v1/me', { email, username })
   },
-  changePassword(userId, { currentPassword, newPassword }) {
-    return apiClient.put(`/api/v1/users/${userId}/password`, {
+  changeCurrentUserPassword({ currentPassword, newPassword }) {
+    return apiClient.put('/api/v1/me/password', {
       currentPassword,
       newPassword,
     })

@@ -33,12 +33,12 @@ export const useRecommendations = (
 
     try {
       const [recommendations, ratings] = await Promise.all([
-        recommendationsApi.getUserRecommendations(userId, {
+        recommendationsApi.getCurrentUserRecommendations({
           limit,
           includeReason,
           algo,
         }),
-        ratingsApi.getUserRatings(userId, { limit: 500 }),
+        ratingsApi.getCurrentUserRatings({ limit: 50 }),
       ])
       const ratingsByItemId = getLatestRatingsByItemId(ratings)
 
@@ -57,7 +57,7 @@ export const useRecommendations = (
         setIsLoading(false)
       }
     }
-  }, [algo, enabled, includeReason, limit, mapRecommendations, userId])
+  }, [algo, enabled, includeReason, limit, mapRecommendations])
 
   const recompute = useCallback(async () => {
     if (!enabled) {
@@ -69,12 +69,12 @@ export const useRecommendations = (
 
     try {
       const [recommendations, ratings] = await Promise.all([
-        recommendationsApi.recomputeUserRecommendations(userId, {
+        recommendationsApi.recomputeCurrentUserRecommendations({
           limit,
           includeReason,
           algo,
         }),
-        ratingsApi.getUserRatings(userId, { limit: 500 }),
+        ratingsApi.getCurrentUserRatings({ limit: 50 }),
       ])
       const ratingsByItemId = getLatestRatingsByItemId(ratings)
       const moviesWithItems = await mapRecommendations(recommendations, ratingsByItemId)
@@ -85,7 +85,7 @@ export const useRecommendations = (
     } finally {
       setIsRecomputing(false)
     }
-  }, [algo, enabled, includeReason, limit, mapRecommendations, userId])
+  }, [algo, enabled, includeReason, limit, mapRecommendations])
 
   const refresh = useCallback(() => {
     setReloadKey((currentKey) => currentKey + 1)

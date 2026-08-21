@@ -1,9 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { apiClient, setApiAccessToken } from './apiClient'
+import { apiClient, setApiAccessToken, setUnauthorizedHandler } from './apiClient'
 
 describe('apiClient', () => {
   afterEach(() => {
     setApiAccessToken(null)
+    setUnauthorizedHandler(null)
     vi.unstubAllGlobals()
   })
 
@@ -28,5 +29,23 @@ describe('apiClient', () => {
 
     await expect(apiClient.get('/api/v1/missing')).rejects.toThrow('Not found')
     expect(fetchMock.mock.calls[0][1].headers.Authorization).toBe('Bearer secret-token')
+  })
+
+  it('notifies the session manager when authentication expires', async () => {
+    const onUnauthorized = vi.fn()
+    setUnauthorizedHandler(onUnauthorized)
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      code: 'AUTHENTICATION_REQUIRED',
+      detail: 'Authentication is required',
+    }), {
+      headers: { 'Content-Type': 'application/problem+json' },
+      status: 401,
+    })))
+
+    await expect(apiClient.get('/api/v1/me')).rejects.toMatchObject({
+      code: 'AUTHENTICATION_REQUIRED',
+      status: 401,
+    })
+    expect(onUnauthorized).toHaveBeenCalledOnce()
   })
 })

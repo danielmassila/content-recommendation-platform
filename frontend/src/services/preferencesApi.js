@@ -1,10 +1,10 @@
 import { apiClient } from './apiClient'
 
 export const preferencesApi = {
-  getUserPreferences(userId) {
-    return apiClient.get(`/api/v1/users/${userId}/preferences`)
+  getCurrentUserPreferences() {
+    return apiClient.get('/api/v1/me/preferences')
   },
-  replaceUserPreferences(userId, entries) {
-    return apiClient.put(`/api/v1/users/${userId}/preferences`, { entries })
+  replaceCurrentUserPreferences(entries) {
+    return apiClient.put('/api/v1/me/preferences', { entries })
   },
 }

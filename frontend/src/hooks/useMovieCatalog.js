@@ -34,7 +34,7 @@ export const useMovieCatalog = ({
     try {
       const [items, ratings] = await Promise.all([
         itemsApi.getItems({ limit }),
-        userId ? ratingsApi.getUserRatings(userId, { limit: 500 }) : Promise.resolve([]),
+        userId ? ratingsApi.getCurrentUserRatings({ limit: 50 }) : Promise.resolve([]),
       ])
       const ratingsByItemId = getLatestRatingsByItemId(ratings)
       const mappedMovies = items.map((item, index) =>
