@@ -43,6 +43,10 @@ public class UserPreferenceServiceImpl implements UserPreferenceService {
         Set<String> seenPreferences = new HashSet<>();
 
         userPreferenceRepository.deleteByUserId(userId);
+        // Derived deletes are queued in the persistence context. Execute them
+        // before inserting replacements so unchanged values do not violate the
+        // database uniqueness constraint.
+        userPreferenceRepository.flush();
 
         List<UserPreference> preferences = request.getEntries()
                 .stream()
