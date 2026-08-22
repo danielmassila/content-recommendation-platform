@@ -4,9 +4,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
+    private static final Logger LOGGER = LoggerFactory.getLogger(ApiExceptionHandler.class);
 
     @ExceptionHandler(NotFoundException.class)
     public ProblemDetail handleNotFoundException(NotFoundException ex) {
@@ -47,6 +50,16 @@ public class ApiExceptionHandler {
         problemDetail.setTitle("Recommendation service unavailable");
         problemDetail.setDetail(ex.getMessage());
         problemDetail.setProperty("code", "RECOMMENDATION_JOB_UNAVAILABLE");
+        return problemDetail;
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ProblemDetail handleUnexpectedException(Exception ex) {
+        LOGGER.error("Unexpected API error", ex);
+        ProblemDetail problemDetail = ProblemDetail.forStatus(HttpStatus.INTERNAL_SERVER_ERROR);
+        problemDetail.setTitle("Internal server error");
+        problemDetail.setDetail("An unexpected error occurred");
+        problemDetail.setProperty("code", "INTERNAL_ERROR");
         return problemDetail;
     }
 }

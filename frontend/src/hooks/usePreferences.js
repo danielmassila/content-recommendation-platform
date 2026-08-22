@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { preferenceTypes } from '../data/preferences'
 import { preferencesApi } from '../services'
 
@@ -24,6 +24,8 @@ export const usePreferences = () => {
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState(null)
   const [lastSavedAt, setLastSavedAt] = useState(null)
+  const saveQueue = useRef(Promise.resolve())
+  const saveSequence = useRef(0)
 
   useEffect(() => {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(preferences))
@@ -64,16 +66,27 @@ export const usePreferences = () => {
       return
     }
 
+    const sequence = ++saveSequence.current
     setIsSaving(true)
     setError(null)
 
+    saveQueue.current = saveQueue.current
+      .catch(() => undefined)
+      .then(() => preferencesApi.replaceCurrentUserPreferences(nextPreferences.entries))
+
     try {
-      await preferencesApi.replaceCurrentUserPreferences(nextPreferences.entries)
-      setLastSavedAt(new Date())
+      await saveQueue.current
+      if (sequence === saveSequence.current) {
+        setLastSavedAt(new Date())
+      }
     } catch (caughtError) {
-      setError(caughtError)
+      if (sequence === saveSequence.current) {
+        setError(caughtError)
+      }
     } finally {
-      setIsSaving(false)
+      if (sequence === saveSequence.current) {
+        setIsSaving(false)
+      }
     }
   }, [])
 
