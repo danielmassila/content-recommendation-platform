@@ -21,7 +21,6 @@ const getInitials = (email) => {
 const enrichUser = (user) => {
   return {
     ...user,
-    role: user.role ?? 'USER',
     initials: getInitials(user.email),
     name: user.username || user.email.split('@')[0],
   }

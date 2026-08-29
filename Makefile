@@ -50,13 +50,11 @@ counts:
 
 # Run Spring only to apply Flyway migrations (no web server)
 migrate:
-	@if [ -f .env ]; then set -a; . ./.env; set +a; fi; \
-	  cd backend && ./mvnw -q -DskipTests spring-boot:run \
+	cd backend && ./mvnw -q -DskipTests spring-boot:run \
 	  -Dspring-boot.run.arguments=--spring.main.web-application-type=none
 
 api:
-	@if [ -f .env ]; then set -a; . ./.env; set +a; fi; \
-	  cd backend && ./mvnw spring-boot:run
+	cd backend && ./mvnw spring-boot:run
 
 # Reco ML jobs
 py-build:

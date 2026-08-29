@@ -1,7 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import AppShell from './components/layout/AppShell'
 import ProtectedRoute from './components/routing/ProtectedRoute'
-import AdminRoute from './components/routing/AdminRoute'
 import { NAV_ITEMS } from './data/navigation'
 import { useAuth } from './hooks'
 import DevPage from './pages/DevPage'
@@ -52,9 +51,9 @@ const App = () => {
         <Route
           path="/dev"
           element={
-            <AdminRoute>
+            <ProtectedRoute>
               <DevPage />
-            </AdminRoute>
+            </ProtectedRoute>
           }
         />
         <Route path="*" element={<Navigate to="/" replace />} />

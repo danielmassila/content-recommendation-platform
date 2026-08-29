@@ -35,15 +35,6 @@ public class ApiExceptionHandler {
         return problemDetail;
     }
 
-    @ExceptionHandler(UnauthorizedException.class)
-    public ProblemDetail handleUnauthorizedException(UnauthorizedException ex) {
-        ProblemDetail problemDetail = ProblemDetail.forStatus(HttpStatus.UNAUTHORIZED);
-        problemDetail.setTitle("Unauthorized");
-        problemDetail.setDetail(ex.getMessage());
-        problemDetail.setProperty("code", "INVALID_CREDENTIALS");
-        return problemDetail;
-    }
-
     @ExceptionHandler(RecommendationJobException.class)
     public ProblemDetail handleRecommendationJobException(RecommendationJobException ex) {
         ProblemDetail problemDetail = ProblemDetail.forStatus(HttpStatus.SERVICE_UNAVAILABLE);

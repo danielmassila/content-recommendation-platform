@@ -14,9 +14,7 @@ const AppShell = ({ children, navItems, user }) => {
 
         {user ? (
           <nav className="main-nav" aria-label="Navigation principale">
-            {navItems
-              .filter((item) => !item.roles || item.roles.includes(user.role))
-              .map((item) => (
+            {navItems.map((item) => (
               <NavLink
                 className={({ isActive }) => `nav-link ${isActive ? 'nav-link--active' : ''}`.trim()}
                 key={item.id}
@@ -24,7 +22,7 @@ const AppShell = ({ children, navItems, user }) => {
               >
                 {item.label}
               </NavLink>
-              ))}
+            ))}
           </nav>
         ) : (
           <div aria-hidden="true" />

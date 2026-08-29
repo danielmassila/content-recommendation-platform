@@ -2,7 +2,6 @@ package com.example.reco.auth;
 
 import com.example.reco.common.exceptions.BadRequestException;
 import com.example.reco.common.exceptions.ConflictException;
-import com.example.reco.common.exceptions.UnauthorizedException;
 import com.example.reco.controllers.dto.AuthRequest;
 import com.example.reco.controllers.dto.AuthResponse;
 import com.example.reco.controllers.dto.RegisterRequest;
@@ -47,10 +46,10 @@ public class AuthService {
     public AuthResponse login(AuthRequest request) {
         String email = normalizeEmail(request.getEmail());
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UnauthorizedException("Invalid email or password"));
+                .orElseThrow(() -> new BadRequestException("Invalid email or password"));
 
         if (user.getPasswordHash() == null || !passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
-            throw new UnauthorizedException("Invalid email or password");
+            throw new BadRequestException("Invalid email or password");
         }
 
         return toAuthResponse(user);
@@ -70,7 +69,7 @@ public class AuthService {
     }
 
     private UserResponse toUserResponse(User user) {
-        return new UserResponse(user.getId(), user.getEmail(), user.getUsername(), user.getRole());
+        return new UserResponse(user.getId(), user.getEmail(), user.getUsername());
     }
 
     private String normalizeEmail(String email) {
