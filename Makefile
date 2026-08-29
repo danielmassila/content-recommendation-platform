@@ -3,6 +3,13 @@
 
 .DEFAULT_GOAL := help
 
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Darwin)
+JAVA_21_HOME ?= $(shell /usr/libexec/java_home -v 21 2>/dev/null)
+else
+JAVA_21_HOME ?= $(JAVA_HOME)
+endif
+
 help:
 	@echo "Targets:"
 	@echo "  up               Start docker services (db/adminer/etc.)"
@@ -52,6 +59,8 @@ counts:
 # Run Spring only to apply Flyway migrations (no web server)
 migrate:
 	set -a; . ./.env; set +a; \
+	export JAVA_HOME="$(JAVA_21_HOME)"; \
+	export PATH="$(JAVA_21_HOME)/bin:$$PATH"; \
 	export DB_HOST="$${API_DB_HOST:-localhost}"; \
 	export DB_NAME="$${POSTGRES_DB:-reco_db}"; \
 	export DB_USER="$${POSTGRES_USER:-reco_user}"; \
@@ -61,6 +70,8 @@ migrate:
 
 api:
 	set -a; . ./.env; set +a; \
+	export JAVA_HOME="$(JAVA_21_HOME)"; \
+	export PATH="$(JAVA_21_HOME)/bin:$$PATH"; \
 	export DB_HOST="$${API_DB_HOST:-localhost}"; \
 	export DB_NAME="$${POSTGRES_DB:-reco_db}"; \
 	export DB_USER="$${POSTGRES_USER:-reco_user}"; \
@@ -109,7 +120,7 @@ test-frontend:
 	cd frontend && npm ci && npm run lint && npm test -- --run && npm run build
 
 test-backend:
-	cd backend && ./mvnw verify
+	cd backend && JAVA_HOME="$(JAVA_21_HOME)" PATH="$(JAVA_21_HOME)/bin:$$PATH" ./mvnw verify
 
 test-python:
 	cd reco-ml && . .venv/bin/activate && pytest -q

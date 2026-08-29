@@ -589,8 +589,6 @@ def recommend_for_user(
             if n_ratings > 0
             else float(mu + b_u.get(user_id, 0.0) + b_i.get(item_id, 0.0))
         )
-        # WE CHANGED THE CF FUNCTION ADDING THE BIAS
-
     cf_scores = normalize_scores(cf_scores)
     mixed_scores = {
         item_id: (

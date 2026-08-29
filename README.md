@@ -32,6 +32,13 @@ changes with profile maturity so that a new user still receives useful results.
 More detail is available in [the architecture](docs/architecture.md), [the recommendation design](docs/recommendation.md),
 and [the catalogue data strategy](docs/catalog-data.md).
 
+## Model evaluation
+
+The current hybrid model is evaluated against its popularity baseline with deterministic leave-one-out and ratio
+splits. It currently underperforms that baseline; the measured results and next experiments are documented openly in
+[the offline evaluation report](docs/evaluation.md). Model quality is treated as measured work in progress rather than
+an unverified product claim.
+
 ## Requirements
 
 - Java 21

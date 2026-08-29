@@ -1,3 +1,5 @@
+import math
+
 import pytest
 
 from reco_ml.algo import (
@@ -30,9 +32,8 @@ def test_top_k_similar_users_filters_self_and_sorts_and_limits():
         (3, 20, 0.0),
         (2, 30, 4.0),
         (3, 30, 2.0),
-        (1, 30, 1.0),
     ]
-     # user2 identical (sim=1) to user1 on common items but user3 different (0 < sim < 1)
+    # User 2 is identical to user 1 on their common items; user 3 is less similar.
     rbu = build_ratings_by_user(ratings)
     ubi = build_users_by_item(ratings)
 
@@ -82,7 +83,7 @@ def test_score_cf_weighted_average():
     rbu = build_ratings_by_user(ratings)
     ubi = build_users_by_item(ratings)
 
-    sim3 = 25.0 / (math.sqrt(26.0) * 5.0) 
+    sim3 = 25.0 / (math.sqrt(26.0) * 5.0)
     expected = (1.0 * 4.0 + sim3 * 2.0) / (1.0 + sim3)
 
     score = score_cf(
