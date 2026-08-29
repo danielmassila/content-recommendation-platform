@@ -1,5 +1,6 @@
 package com.example.reco.controllers;
 
+import com.example.reco.auth.AuthenticatedUser;
 import com.example.reco.controllers.dto.ItemResponse;
 import com.example.reco.controllers.dto.ItemPageResponse;
 import com.example.reco.model.ItemType;
@@ -9,6 +10,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
 @RestController
 @RequestMapping("/api/v1/items")
@@ -29,9 +31,24 @@ public class ItemsController {
     public ItemPageResponse getAllItems(
             @RequestParam(defaultValue = "") String query,
             @RequestParam(required = false) ItemType type,
+            @RequestParam(defaultValue = "") String genre,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Double minVote,
+            @RequestParam(defaultValue = "all") String ratingStatus,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size
+            @RequestParam(defaultValue = "20") int size,
+            @AuthenticationPrincipal AuthenticatedUser principal
     ) {
-        return itemService.searchItems(query, type, page, size);
+        return itemService.searchItems(
+                query,
+                type,
+                genre,
+                year,
+                minVote,
+                ratingStatus,
+                principal == null ? null : principal.id(),
+                page,
+                size
+        );
     }
 }

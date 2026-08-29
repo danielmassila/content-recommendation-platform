@@ -13,7 +13,16 @@ describe('itemsApi', () => {
     await itemsApi.getItems({ page: 2, query: 'dune', size: 12 })
 
     expect(get).toHaveBeenCalledWith('/api/v1/items', {
-      query: { page: 2, query: 'dune', size: 12, type: 'MOVIE' },
+      query: {
+        genre: '',
+        minVote: '',
+        page: 2,
+        query: 'dune',
+        ratingStatus: 'all',
+        size: 12,
+        type: 'MOVIE',
+        year: '',
+      },
     })
   })
 })

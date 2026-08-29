@@ -1,4 +1,4 @@
-import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react'
+import { useCallback, useDeferredValue, useEffect, useState } from 'react'
 import { getLatestRatingsByItemId, toMovieCard } from '../mappers'
 import { itemsApi, ratingsApi } from '../services'
 
@@ -33,7 +33,15 @@ export const useMovieCatalog = ({
 
     try {
       const [catalog, ratings] = await Promise.all([
-        itemsApi.getItems({ page: page - 1, query: deferredQuery, size: pageSize }),
+        itemsApi.getItems({
+          genre: genre === 'all' ? '' : genre,
+          minVote,
+          page: page - 1,
+          query: deferredQuery,
+          ratingStatus,
+          size: pageSize,
+          year,
+        }),
         userId ? ratingsApi.getCurrentUserRatings({ limit: 50 }) : Promise.resolve([]),
       ])
       const items = catalog.items ?? []
@@ -59,7 +67,7 @@ export const useMovieCatalog = ({
         setIsLoading(false)
       }
     }
-  }, [deferredQuery, enabled, page, pageSize, userId])
+  }, [deferredQuery, enabled, genre, minVote, page, pageSize, ratingStatus, userId, year])
 
   const refresh = useCallback(() => {
     setReloadKey((currentKey) => currentKey + 1)
@@ -77,21 +85,6 @@ export const useMovieCatalog = ({
     }
   }, [loadCatalog, reloadKey])
 
-  const filteredMovies = useMemo(() => {
-    return movies.filter((movie) => {
-      const matchesGenre =
-        genre === 'all' ||
-        movie.genres.some((movieGenre) => movieGenre.toLowerCase() === genre.toLowerCase())
-      const matchesYear = !year || String(movie.year) === String(year)
-      const matchesVote = !minVote || Number(movie.voteAverage ?? 0) >= Number(minVote)
-      const matchesRatingStatus =
-        ratingStatus === 'all' ||
-        (ratingStatus === 'rated' && movie.rating) ||
-        (ratingStatus === 'unrated' && !movie.rating)
-      return matchesGenre && matchesYear && matchesVote && matchesRatingStatus
-    })
-  }, [genre, minVote, movies, ratingStatus, year])
-
   const pageCount = catalogPage.totalPages
   const currentPage = Math.min(Math.max(page, 1), pageCount)
 
@@ -100,20 +93,17 @@ export const useMovieCatalog = ({
       {
         id: 'catalog',
         title: 'Catalogue',
-        items: filteredMovies,
+        items: movies,
       },
     ],
     currentPage,
     error,
-    isEmpty: !isLoading && !error && filteredMovies.length === 0,
+    isEmpty: !isLoading && !error && movies.length === 0,
     isLoading,
-    movies: filteredMovies,
+    movies,
     pageCount,
     refresh,
     totalCount: catalogPage.totalItems,
-    totalResults: filteredMovies.length,
-    years: [...new Set(movies.map((movie) => movie.year).filter((movieYear) => Number(movieYear)))].sort(
-      (a, b) => Number(b) - Number(a),
-    ),
+    totalResults: movies.length,
   }
 }

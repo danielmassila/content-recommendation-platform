@@ -10,5 +10,15 @@ public interface ItemService {
 
     ItemResponse getItemById(Long id);
 
-    ItemPageResponse searchItems(String query, ItemType type, int page, int size);
+    ItemPageResponse searchItems(
+            String query,
+            ItemType type,
+            String genre,
+            Integer year,
+            Double minVote,
+            String ratingStatus,
+            Long userId,
+            int page,
+            int size
+    );
 }

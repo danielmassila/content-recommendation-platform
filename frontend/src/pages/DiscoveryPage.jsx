@@ -5,6 +5,8 @@ import MovieRow from '../components/media/MovieRow'
 import { Button, EmptyState, ErrorState, LoadingState, SelectField, TextField } from '../components/ui'
 import { useAuth, useMovieCatalog, useMovieRating, useRecommendations } from '../hooks'
 
+const CATALOG_YEARS = Array.from({ length: 130 }, (_, index) => new Date().getFullYear() - index)
+
 const DiscoveryPage = () => {
   const { user } = useAuth()
   const [catalogPage, setCatalogPage] = useState(1)
@@ -42,7 +44,6 @@ const DiscoveryPage = () => {
     refresh: refreshCatalog,
     totalCount,
     totalResults,
-    years,
   } = useMovieCatalog({
     genre: selectedGenre,
     minVote,
@@ -240,7 +241,7 @@ const DiscoveryPage = () => {
           }}
         >
           <option value="">Toutes les années</option>
-          {years.map((year) => (
+          {CATALOG_YEARS.map((year) => (
             <option key={year} value={year}>
               {year}
             </option>
