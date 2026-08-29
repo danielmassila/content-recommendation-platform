@@ -1,10 +1,12 @@
 # Tonight's Pick
 
-A full-stack movie recommendation platform built to explore the complete lifecycle of a recommender system: ingesting a
+Here is a little project I started making when I was bored,in order to answer a question that is quite simple, yet complicated when you're actually looking for an answer: what to watch tonight? A full-stack movie recommendation platform built to explore the complete lifecycle of a recommender system: ingesting a
 dataset, computing personalized results, serving them through an API, and turning them into a usable product.
 
 The project combines a Spring Boot API, a React interface, a Python recommendation engine, and PostgreSQL. It is
-designed as a portfolio project with an emphasis on explicit trade-offs and an understandable architecture.
+designed as the beginning of a real portfolio project with an emphasis on explicit trade-offs and an understandable architecture.
+
+Next step : deploying this app and get it to production level !
 
 ## What the application does
 
@@ -27,7 +29,7 @@ flowchart LR
 ```
 
 The recommendation strategy blends a Bayesian popularity baseline with user-based collaborative filtering. The blend
-changes with profile maturity so that a new user still receives useful results.
+changes with profile maturity so that a new user still receives useful results. The quality of the recommendation is for now secondary, since I could've used state-of-the-art machine learning algorithms instead. But well, let's keep it simple and fun.
 
 More detail is available in [the architecture](docs/architecture.md), [the recommendation design](docs/recommendation.md),
 and [the catalogue data strategy](docs/catalog-data.md).
@@ -109,10 +111,8 @@ docs/       Architecture decisions, data strategy, and performance notes
 
 This is a local demonstration architecture, not a production deployment template. Runtime hardening, authorization
 roles, CI/CD, cache infrastructure, and observability are intentionally left as explicit future engineering work rather
-than presented as finished features.
+than presented as finished features !
 
 ## Development approach
 
-This project is AI-assisted. AI was used as a development accelerator for implementation and review; architectural
-choices, scope decisions, validation, and final ownership remain part of the project work. The commit history and
-documentation are kept to make those decisions inspectable.
+Part of the project was AI-assisted, notably on frontend aspects as was used as a development accelerator for implementation and review. I built the architecture, built myself the backend, made some Figma mockup and then developped some interestings frontend aspects (authentication, pagination, etc) while letting an AI-Agent accelerates the rest (and give the visual results I wanted, getting some inspiration on https://21st.dev).
