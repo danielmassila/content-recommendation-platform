@@ -1,7 +1,14 @@
-.PHONY: help up down reset migrate api demo counts py-build py-smoke py-download py-import py-eval py-reco py-all test-python test-python-docker
+.PHONY: help up down reset migrate api frontend demo-data counts py-build py-smoke py-download py-import py-enrich-tmdb py-eval py-reco py-all test-frontend test-backend test-python test-python-docker
 # Help
 
 .DEFAULT_GOAL := help
+
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Darwin)
+JAVA_21_HOME ?= $(shell /usr/libexec/java_home -v 21 2>/dev/null)
+else
+JAVA_21_HOME ?= $(JAVA_HOME)
+endif
 
 help:
 	@echo "Targets:"
@@ -11,13 +18,15 @@ help:
 	@echo "  migrate          Run Flyway migrations (Spring without web server)"
 	@echo "  api              Run Spring Boot API"
 	@echo "  counts           Show row counts in core tables"
-	@echo "  demo             Full demo: reset + migrate + import + reco + counts + api"
+	@echo "  demo-data        Reset DB, import demo data and compute recommendations"
+	@echo "  frontend         Install locked dependencies and run the React app"
 	@echo ""
 	@echo "Python jobs (Docker):"
 	@echo "  py-build         Build reco-job image"
 	@echo "  py-smoke         Run smoke checks on dataset/pipeline"
 	@echo "  py-download      Download dataset into ./datasets (not committed)"
 	@echo "  py-import        Import dataset into DB"
+	@echo "  py-enrich-tmdb   Enrich imported MovieLens items with TMDB metadata"
 	@echo "  py-reco          Compute recommendations and write them into DB"
 	@echo "  py-eval          Offline evaluation (train/test split) with Precision@K, Recall@K, MAP@K"
 	@echo "  py-all           Build + smoke + import + reco"
@@ -49,11 +58,28 @@ counts:
 
 # Run Spring only to apply Flyway migrations (no web server)
 migrate:
-	./mvnw -q -DskipTests spring-boot:run \
+	set -a; . ./.env; set +a; \
+	export JAVA_HOME="$(JAVA_21_HOME)"; \
+	export PATH="$(JAVA_21_HOME)/bin:$$PATH"; \
+	export DB_HOST="$${API_DB_HOST:-localhost}"; \
+	export DB_NAME="$${POSTGRES_DB:-reco_db}"; \
+	export DB_USER="$${POSTGRES_USER:-reco_user}"; \
+	export DB_PASSWORD="$${POSTGRES_PASSWORD:-reco_pass}"; \
+	cd backend && ./mvnw -q -DskipTests spring-boot:run \
 	  -Dspring-boot.run.arguments=--spring.main.web-application-type=none
 
 api:
-	./mvnw spring-boot:run
+	set -a; . ./.env; set +a; \
+	export JAVA_HOME="$(JAVA_21_HOME)"; \
+	export PATH="$(JAVA_21_HOME)/bin:$$PATH"; \
+	export DB_HOST="$${API_DB_HOST:-localhost}"; \
+	export DB_NAME="$${POSTGRES_DB:-reco_db}"; \
+	export DB_USER="$${POSTGRES_USER:-reco_user}"; \
+	export DB_PASSWORD="$${POSTGRES_PASSWORD:-reco_pass}"; \
+	cd backend && ./mvnw spring-boot:run
+
+frontend:
+	cd frontend && npm ci && npm run dev
 
 # Reco ML jobs
 py-build:
@@ -68,6 +94,9 @@ py-download:
 py-import:
 	docker compose run --rm reco-job python -m jobs.import_dataset
 
+py-enrich-tmdb:
+	docker compose run --rm reco-job python -m jobs.enrich_tmdb
+
 py-reco:
 	docker compose run --rm reco-job python -m jobs.run_reco
 
@@ -77,15 +106,22 @@ py-eval:
 py-all: py-build py-download py-smoke py-import py-reco
 
 
-# Full demo: rebuild DB, migrate schema, import data, compute recos, show counts, run API
-demo: reset migrate py-all py-eval counts api
+# Full demo dataset: rebuild DB, migrate schema, import data and compute recommendations
+demo-data: reset migrate py-all py-eval counts
 	@echo ""
-	@echo "Demo ready:"
-	@echo " - API     -> http://localhost:8081"
-	@echo " - Adminer -> http://localhost:8080"
+	@echo "Demo data ready. Start 'make api' and 'make frontend' in separate terminals."
+	@echo " - API      -> http://localhost:8081"
+	@echo " - Frontend -> http://localhost:5173"
+	@echo " - Adminer  -> http://localhost:8082"
 
 
 # Tests
+test-frontend:
+	cd frontend && npm ci && npm run lint && npm test -- --run && npm run build
+
+test-backend:
+	cd backend && JAVA_HOME="$(JAVA_21_HOME)" PATH="$(JAVA_21_HOME)/bin:$$PATH" ./mvnw verify
+
 test-python:
 	cd reco-ml && . .venv/bin/activate && pytest -q
 

@@ -40,10 +40,7 @@ over commonly rated items.
 
 sim(u,v) = cosine similarity on shared items
 
-To avoid recomputing the same similarities multiple times,
-a similarity cache is used during recommendation generation.
-
-Additionally, in order to enhance performance,
+To keep a recomputation bounded without introducing a cache layer,
 
 - Similarities are computed only for a limited neighbor pool
 - Not all user pairs are evaluated

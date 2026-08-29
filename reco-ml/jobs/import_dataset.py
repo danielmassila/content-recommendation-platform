@@ -1,6 +1,7 @@
 from pathlib import Path
 from decimal import Decimal
 import json
+import re
 import pandas as pd
 
 from reco_ml.db import get_db_connection
@@ -9,6 +10,19 @@ from reco_ml.db import get_db_connection
 DATA_DIR = Path("/datasets/raw_data")  # <- ton volume: ./datasets -> /datasets
 MOVIES_CSV = DATA_DIR / "movies.csv"
 RATINGS_CSV = DATA_DIR / "ratings.csv"
+LINKS_CSV = DATA_DIR / "links.csv"
+
+
+def _extract_year(title: str) -> int | None:
+    match = re.search(r"\((\d{4})\)\s*$", title)
+    return int(match.group(1)) if match else None
+
+
+def _format_imdb_id(imdb_id) -> str | None:
+    if imdb_id is None or pd.isna(imdb_id):
+        return None
+
+    return f"tt{int(imdb_id):07d}"
 
 
 def main():
@@ -21,6 +35,7 @@ def main():
 
     movies_df = pd.read_csv(MOVIES_CSV)
     ratings_df = pd.read_csv(RATINGS_CSV)
+    links_df = pd.read_csv(LINKS_CSV) if LINKS_CSV.exists() else pd.DataFrame()
 
     # Safety checks
     movies_cols = {"movieId", "title", "genres"}
@@ -35,6 +50,16 @@ def main():
         raise RuntimeError(
             f"ratings.csv must contain {ratings_cols} (got {set(ratings_df.columns)})"
         )
+
+    links_by_movie_id = {}
+    if not links_df.empty:
+        links_cols = {"movieId", "imdbId", "tmdbId"}
+        if not links_cols.issubset(links_df.columns):
+            raise RuntimeError(
+                f"links.csv must contain {links_cols} (got {set(links_df.columns)})"
+            )
+
+        links_by_movie_id = links_df.set_index("movieId").to_dict("index")
 
     # Generating synthetic users and filling the tables
     user_ids = sorted(ratings_df["userId"].unique().tolist())
@@ -65,7 +90,19 @@ def main():
                 external_id = int(row.movieId)
                 title = str(row.title)
                 genres = str(row.genres) if row.genres is not None else ""
-                metadata = {"genres": genres.split("|") if genres else []}
+                link = links_by_movie_id.get(external_id, {})
+                tmdb_id = link.get("tmdbId")
+                imdb_id = link.get("imdbId")
+                year = _extract_year(title)
+
+                metadata = {
+                    "source": "movielens",
+                    "movieLensId": external_id,
+                    "imdbId": _format_imdb_id(imdb_id),
+                    "tmdbId": None if pd.isna(tmdb_id) else int(tmdb_id),
+                    "year": year,
+                    "genres": [] if genres == "(no genres listed)" else genres.split("|"),
+                }
 
                 item_rows.append((external_id, title, "MOVIE", json.dumps(metadata)))
 

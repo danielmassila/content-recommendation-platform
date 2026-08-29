@@ -13,6 +13,7 @@ ZIP_PATH = DATA_DIR / "ml-latest-small.zip"
 REQUIRED = {
     "movies.csv": "ml-latest-small/movies.csv",
     "ratings.csv": "ml-latest-small/ratings.csv",
+    "links.csv": "ml-latest-small/links.csv",
 }
 
 

@@ -2,6 +2,7 @@ HELP.md
 target/
 !**/src/main/**/target/
 !**/src/test/**/target/
+node_modules/
 .env
 .venv
 
@@ -54,11 +55,15 @@ ruff_cache/
 
 ### Logs / temp ###
 *.log
+.venv/
+frontend/src/brouillon.*
 tmp/
 .cache/
 
 ### Data (raw datasets should not be committed) ###
 datasets/
-data/
+/data/
 *.parquet
 *.jsonl
+
+docs/.Rhistory

@@ -11,13 +11,14 @@ educational hybrid recommender into a production-grade modular recommendation pl
 - Database communication
 - Offline evaluation
 - Dockerized environment
+- React product interface
 
 The focus is on clarity and system foundations.
 
-## V2 — System engineering upgrades
+## V2 — Targeted recommendation updates
 
-- Per-user recomputation
-- Avoid full-batch recompute
+- Per-user recomputation (implemented)
+- Bounded recommendation jobs (implemented)
 - Similarity Precomputation
 - Caching layer
 - Performance and testing improvements
@@ -32,7 +33,6 @@ The focus is on clarity and system foundations.
 
 ## V4 — Product-level platform
 
-- Frontend
 - Event-driven pipeline
 - ML-based models for better recommendations
     - Matrix factorization
