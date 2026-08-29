@@ -9,7 +9,6 @@ import com.example.reco.model.ItemType;
 import com.example.reco.repositories.ItemRepository;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,22 +44,38 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     @Transactional(readOnly = true)
-    public ItemPageResponse searchItems(String query, ItemType type, int page, int size) {
+    public ItemPageResponse searchItems(
+            String query,
+            ItemType type,
+            String genre,
+            Integer year,
+            Double minVote,
+            String ratingStatus,
+            Long userId,
+            int page,
+            int size
+    ) {
         int safePage = Math.max(page, 0);
         int safeSize = size <= 0 ? DEFAULT_SIZE : Math.min(size, MAX_SIZE);
         String normalizedQuery = query == null ? "" : query.trim();
-        PageRequest pageable = PageRequest.of(safePage, safeSize, Sort.by("title").ascending());
+        String normalizedGenre = genre == null || genre.equalsIgnoreCase("all") ? "" : genre.trim();
+        String normalizedRatingStatus = switch (ratingStatus == null ? "all" : ratingStatus.toLowerCase()) {
+            case "rated" -> "rated";
+            case "unrated" -> "unrated";
+            default -> "all";
+        };
+        PageRequest pageable = PageRequest.of(safePage, safeSize);
 
-        Page<Item> result;
-        if (type != null && !normalizedQuery.isEmpty()) {
-            result = itemRepository.findByTypeAndTitleContainingIgnoreCase(type, normalizedQuery, pageable);
-        } else if (type != null) {
-            result = itemRepository.findByType(type, pageable);
-        } else if (!normalizedQuery.isEmpty()) {
-            result = itemRepository.findByTitleContainingIgnoreCase(normalizedQuery, pageable);
-        } else {
-            result = itemRepository.findAll(pageable);
-        }
+        Page<Item> result = itemRepository.searchCatalog(
+                type == null ? "" : type.name(),
+                normalizedQuery,
+                normalizedGenre,
+                year,
+                minVote,
+                normalizedRatingStatus,
+                userId,
+                pageable
+        );
 
         return new ItemPageResponse(
                 result.getContent().stream().map(this::toResponse).toList(),
