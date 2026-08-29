@@ -87,16 +87,16 @@ The recommendation logic is deliberately written as pure Python logic, decoupled
 
 We clearly separate computation phase from serving phase.
 
-## 6 - Infrastructure & deployment
+## 6 - Local infrastructure
 
-All infrastructure aspects are managed through Docker Compose.
+Docker Compose manages the local database and Python job runtime. The React and Spring Boot applications run as local
+development processes.
 
 Services:
 
 - db (PostgreSQL)
 - adminer (DB UI)
 - reco-job (Python container)
-- Spring Boot app
 
 Environment variables:
 
@@ -106,13 +106,15 @@ Environment variables:
 
 Flyway handles database migrations.
 
+This Compose file is a development environment, not a production deployment definition.
+
 ## 7 - Scalability perspectives
 
 ### What scales well
 
 - Read-heavy serving (precomputed recommendations)
 - Clear modular boundaries
-- Containerized deployment
+- Containerized data and recommendation jobs
 
 ### What does not scale yet
 

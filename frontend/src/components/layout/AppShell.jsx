@@ -7,9 +7,14 @@ const AppShell = ({ children, navItems, user }) => {
 
   return (
     <div className="app-shell">
+      <div className="void-backdrop" aria-hidden="true">
+        <span className="void-backdrop__axis void-backdrop__axis--left" />
+        <span className="void-backdrop__axis void-backdrop__axis--right" />
+      </div>
       <header className="topbar">
         <Link className="brand" to="/">
-          Tonight&apos;s Pick
+          <span className="brand__mark">TP</span>
+          <span>Tonight&apos;s Pick</span>
         </Link>
 
         {user ? (
@@ -47,7 +52,7 @@ const AppShell = ({ children, navItems, user }) => {
         )}
       </header>
 
-      <main>{children}</main>
+      <main className="app-main">{children}</main>
     </div>
   )
 }

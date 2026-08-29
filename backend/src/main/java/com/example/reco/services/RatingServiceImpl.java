@@ -66,7 +66,7 @@ public class RatingServiceImpl implements RatingService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<RatingResponse> getRatingsByUser(Long userId, int limit) { // add a safeguard?
+    public List<RatingResponse> getRatingsByUser(Long userId, int limit) {
         int myLimit = (limit <= 0) ? DEFAULT_LIMIT : limit;
         myLimit = Math.min(myLimit, MAX_LIMIT);
         Page<Rating> page = ratingRepository.findByUserId(userId, PageRequest.of(0, myLimit));
@@ -75,7 +75,7 @@ public class RatingServiceImpl implements RatingService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<RatingResponse> getRatingsByItem(Long itemId, int limit) { // add a safeguard?
+    public List<RatingResponse> getRatingsByItem(Long itemId, int limit) {
         int myLimit = (limit <= 0) ? DEFAULT_LIMIT : limit;
         myLimit = Math.min(myLimit, MAX_LIMIT);
         Page<Rating> page = ratingRepository.findByItemId(itemId, PageRequest.of(0, myLimit));

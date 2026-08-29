@@ -1,91 +1,111 @@
-# Content Recommendation Platform
+# Tonight's Pick
 
-This project is a backend-oriented content recommendation platform, designed to explore how recommendation systems can
-be integrated into a real-world software architecture. For this first version, I decided to focus on movie
-recommendation, but my initial goal was to mix the content recommendations, with books, songs and movies, so that I
-solve a problem that I truly face: finding interesting new content to discover.
+A full-stack movie recommendation platform built to explore the complete lifecycle of a recommender system: ingesting a
+dataset, computing personalized results, serving them through an API, and turning them into a usable product.
 
-## Project Overview
+The project combines a Spring Boot API, a React interface, a Python recommendation engine, and PostgreSQL. It is
+designed as a portfolio project with an emphasis on explicit trade-offs and an understandable architecture.
 
-Throughout this project, I wanted to explore how recommendation systems can be integrated into a real-world software
-architecture.
+## What the application does
 
-This first version focuses on movie recommendations, but my initial goal was to mix the content recommendations, with
-books, songs and movies, so that I solve a problem that I truly face: finding interesting new content to discover.
-
-Rather than building a UI-centric application, I deliberately focused on:
-
-- System design
-- Data flow
-- Architectural trade-offs
-- Engineering constraints
-
-I built the whole project based on an end-to-end recommendation pipeline:
-data ingestion → storage → computation → API exposure.
+- Creates an account and manages a personal profile.
+- Captures movie, genre, and talent preferences.
+- Searches and filters a paginated movie catalogue.
+- Records ratings and exposes recent rating history.
+- Produces personalized recommendations with a hybrid algorithm.
+- Enriches MovieLens records with optional TMDB metadata.
 
 ## Architecture
 
-The system is composed of:
-
-- **`backend/`** Java (Spring Boot) REST API
-- **`frontend/`** React interface
-- **`reco-ml/`** Python recommendation engine and data jobs
-- **PostgreSQL** shared database
-- **Docker Compose** for orchestration
-
-The detailed architecture is available here:
-
-👉 `docs/architecture.md`
-
----
-
-## Recommendation Strategy
-
-Hybrid model:
-
-1. Bayesian-weighted popularity baseline
-2. User-based collaborative filtering (using cosine similarity)
-3. Dynamic hybrid blending based on profile maturity
-
-Full explanation:
-👉 `docs/recommendation.md`
-
----
-
-## Quick Start
-
-```bash
-git clone <repo>
-cd content-recommendation-platform
-make demo
+```mermaid
+flowchart LR
+    UI[React frontend] -->|REST / JWT| API[Spring Boot API]
+    API --> DB[(PostgreSQL)]
+    API -->|bounded job| JOB[Python recommender]
+    JOB --> DB
+    TMDB[TMDB API] -->|optional enrichment| JOB
 ```
 
-## Data enrichment
+The recommendation strategy blends a Bayesian popularity baseline with user-based collaborative filtering. The blend
+changes with profile maturity so that a new user still receives useful results.
 
-MovieLens is used as the local recommendation dataset. The download/import pipeline stores:
+More detail is available in [the architecture](docs/architecture.md), [the recommendation design](docs/recommendation.md),
+and [the catalogue data strategy](docs/catalog-data.md).
 
-- users from MovieLens user ids
-- movies in `items`
-- ratings in `ratings`
-- external ids from `links.csv` in `items.metadata`
+## Requirements
 
-TMDB is optional and should be used as an enrichment source, not as the application database.
+- Java 21
+- Docker with Docker Compose
+- Node.js 22 or newer
+- GNU Make
+- A TMDB API key only if poster and metadata enrichment is required
+
+## Run locally
+
+Clone the repository and create the local configuration:
 
 ```bash
+git clone git@github.com:danielmassila/content-recommendation-platform.git
+cd content-recommendation-platform
 cp .env.example .env
-# fill TMDB_API_KEY in .env
+```
+
+Prepare PostgreSQL and the MovieLens demonstration dataset:
+
+```bash
+make demo-data
+```
+
+Then start the two application processes in separate terminals:
+
+```bash
+make api
+```
+
+```bash
+make frontend
+```
+
+Open:
+
+- Frontend: http://localhost:5173
+- API: http://localhost:8081
+- Adminer: http://localhost:8082
+
+The first dataset preparation downloads MovieLens and can take a few minutes. TMDB enrichment is optional:
+
+```bash
+# Set TMDB_API_KEY in .env first
 make py-enrich-tmdb
 ```
 
-The TMDB job enriches existing `items.metadata` with poster paths, overview, release date,
-runtime, popularity and vote averages when a `tmdbId` is available.
+## Tests
 
-The rationale, failure behavior and scaling boundary of this hybrid local/API model are
-documented in [`docs/catalog-data.md`](docs/catalog-data.md).
+```bash
+make test-frontend
+make test-backend
+make test-python-docker
+```
 
+The backend test suite requires Docker for its PostgreSQL integration test.
 
-User recommendation recomputation is targeted and bounded; operational details are documented in
-[`docs/recommendation-jobs.md`](docs/recommendation-jobs.md).
+## Repository structure
 
-Request/query budgets and their regression check are described in
-[`docs/performance.md`](docs/performance.md).
+```text
+backend/    Spring Boot REST API, Flyway migrations, and Java tests
+frontend/   React/Vite application and component tests
+reco-ml/    Recommendation algorithms, data jobs, and Python tests
+docs/       Architecture decisions, data strategy, and performance notes
+```
+
+## Current scope
+
+This is a local demonstration architecture, not a production deployment template. Runtime hardening, authorization
+roles, CI/CD, cache infrastructure, and observability are intentionally left as explicit future engineering work rather
+than presented as finished features.
+
+## Development approach
+
+This project is AI-assisted. AI was used as a development accelerator for implementation and review; architectural
+choices, scope decisions, validation, and final ownership remain part of the project work. The commit history and
+documentation are kept to make those decisions inspectable.

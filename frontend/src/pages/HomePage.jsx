@@ -9,19 +9,24 @@ const HomePage = () => {
   return (
     <section className="page page--home">
       <div className="home-hero">
-        <p className="eyebrow">Ce soir, sans hésiter</p>
-        <h1>Qu&apos;est-ce qu&apos;on regarde ce soir ?</h1>
-        <p className="hero-copy">
-          Démarre avec quelques préférences, puis explore un catalogue enrichi pour construire des recommandations
-          qui deviennent vraiment les tiennes.
-        </p>
-        <div className="hero-actions">
-          <Button onClick={() => navigate(isAuthenticated ? '/preferences' : '/login')}>
-            {isAuthenticated ? 'Démarrer mes préférences' : 'Créer mon espace'}
-          </Button>
-          <Button variant="secondary" onClick={() => navigate('/discover')}>
-            Explorer le catalogue
-          </Button>
+        <div className="terminal-frame">
+          <div className="terminal-screen">
+            <div className="terminal-screen__content">
+              <p className="eyebrow">Recommandations personnalisées</p>
+              <h1>Trouvez un film qui vous ressemble.</h1>
+              <p className="hero-copy">
+                Indiquez ce que vous aimez et découvrez une sélection construite à partir de vos préférences.
+              </p>
+              <div className="hero-actions">
+                <Button onClick={() => navigate(isAuthenticated ? '/preferences' : '/login')}>
+                  {isAuthenticated ? 'Modifier mes préférences' : 'Créer mon profil'}
+                </Button>
+                <Button variant="secondary" onClick={() => navigate('/discover')}>
+                  Découvrir les films
+                </Button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </section>

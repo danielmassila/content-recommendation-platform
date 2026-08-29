@@ -1,4 +1,4 @@
-.PHONY: help up down reset migrate api demo counts py-build py-smoke py-download py-import py-enrich-tmdb py-eval py-reco py-all test-python test-python-docker
+.PHONY: help up down reset migrate api frontend demo-data counts py-build py-smoke py-download py-import py-enrich-tmdb py-eval py-reco py-all test-frontend test-backend test-python test-python-docker
 # Help
 
 .DEFAULT_GOAL := help
@@ -11,7 +11,8 @@ help:
 	@echo "  migrate          Run Flyway migrations (Spring without web server)"
 	@echo "  api              Run Spring Boot API"
 	@echo "  counts           Show row counts in core tables"
-	@echo "  demo             Full demo: reset + migrate + import + reco + counts + api"
+	@echo "  demo-data        Reset DB, import demo data and compute recommendations"
+	@echo "  frontend         Install locked dependencies and run the React app"
 	@echo ""
 	@echo "Python jobs (Docker):"
 	@echo "  py-build         Build reco-job image"
@@ -50,11 +51,24 @@ counts:
 
 # Run Spring only to apply Flyway migrations (no web server)
 migrate:
+	set -a; . ./.env; set +a; \
+	export DB_HOST="$${API_DB_HOST:-localhost}"; \
+	export DB_NAME="$${POSTGRES_DB:-reco_db}"; \
+	export DB_USER="$${POSTGRES_USER:-reco_user}"; \
+	export DB_PASSWORD="$${POSTGRES_PASSWORD:-reco_pass}"; \
 	cd backend && ./mvnw -q -DskipTests spring-boot:run \
 	  -Dspring-boot.run.arguments=--spring.main.web-application-type=none
 
 api:
+	set -a; . ./.env; set +a; \
+	export DB_HOST="$${API_DB_HOST:-localhost}"; \
+	export DB_NAME="$${POSTGRES_DB:-reco_db}"; \
+	export DB_USER="$${POSTGRES_USER:-reco_user}"; \
+	export DB_PASSWORD="$${POSTGRES_PASSWORD:-reco_pass}"; \
 	cd backend && ./mvnw spring-boot:run
+
+frontend:
+	cd frontend && npm ci && npm run dev
 
 # Reco ML jobs
 py-build:
@@ -81,15 +95,22 @@ py-eval:
 py-all: py-build py-download py-smoke py-import py-reco
 
 
-# Full demo: rebuild DB, migrate schema, import data, compute recos, show counts, run API
-demo: reset migrate py-all py-eval counts api
+# Full demo dataset: rebuild DB, migrate schema, import data and compute recommendations
+demo-data: reset migrate py-all py-eval counts
 	@echo ""
-	@echo "Demo ready:"
-	@echo " - API     -> http://localhost:8081"
-	@echo " - Adminer -> http://localhost:8080"
+	@echo "Demo data ready. Start 'make api' and 'make frontend' in separate terminals."
+	@echo " - API      -> http://localhost:8081"
+	@echo " - Frontend -> http://localhost:5173"
+	@echo " - Adminer  -> http://localhost:8082"
 
 
 # Tests
+test-frontend:
+	cd frontend && npm ci && npm run lint && npm test -- --run && npm run build
+
+test-backend:
+	cd backend && ./mvnw verify
+
 test-python:
 	cd reco-ml && . .venv/bin/activate && pytest -q
 

@@ -3,7 +3,6 @@ import AppShell from './components/layout/AppShell'
 import ProtectedRoute from './components/routing/ProtectedRoute'
 import { NAV_ITEMS } from './data/navigation'
 import { useAuth } from './hooks'
-import DevPage from './pages/DevPage'
 import DiscoveryPage from './pages/DiscoveryPage'
 import HomePage from './pages/HomePage'
 import PreferencesPage from './pages/PreferencesPage'
@@ -45,14 +44,6 @@ const App = () => {
           element={
             <ProtectedRoute>
               <ProfilePage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/dev"
-          element={
-            <ProtectedRoute>
-              <DevPage />
             </ProtectedRoute>
           }
         />
