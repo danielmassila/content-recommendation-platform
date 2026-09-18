@@ -135,5 +135,5 @@ jobs:
           context: ${{ matrix.context }}
           push: false # only build the image
           tags: content-recommendation-platform-${{ matrix.image }}:ci
-          cache-from: type=gha, scope={ matrix.image }} # fill cache from previous runs of this workflow
+          cache-from: type=gha, scope=${{ matrix.image }} # fill cache from previous runs of this workflow
           cache-to: type=gha, mode=max, scope=${{ matrix.image }} # store cache for future runs of this workflow
