@@ -61,11 +61,12 @@ jobs:
           java-version: 21
           cache: maven
 
-      - name: Build application backend
-        run: mvn clean install -DskipTests
+      - name: Make Maven wrapper executable
+        run: chmod +x mvnw
 
-      - name: Run tests
-        run: mvn test
+      - name: Build and test application backend
+        run: ./mvnw --batch-mode --no-transfer-progress verify
+
 
   python:
     name: Python
