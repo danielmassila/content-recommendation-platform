@@ -1,6 +1,8 @@
 # Tonight's Pick
 
-Here is a little project I started making when I was bored,in order to answer a question that is quite simple, yet complicated when you're actually looking for an answer: what to watch tonight? A full-stack movie recommendation platform built to explore the complete lifecycle of a recommender system: ingesting a
+[![Continuous Integration](https://github.com/danielmassila/content-recommendation-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/danielmassila/content-recommendation-platform/actions/workflows/ci.yml)
+
+Here is a little project I started making when I was bored, in order to answer a question that is quite simple, yet complicated when you're actually looking for an answer: what to watch tonight? A full-stack movie recommendation platform built to explore the complete lifecycle of a recommender system: ingesting a
 dataset, computing personalized results, serving them through an API, and turning them into a usable product.
 
 The project combines a Spring Boot API, a React interface, a Python recommendation engine, and PostgreSQL. It is
@@ -98,6 +100,26 @@ make test-python-docker
 
 The backend test suite requires Docker for its PostgreSQL integration test.
 
+## Continuous integration
+
+GitHub Actions validates every pull request targeting `main`. The workflow runs:
+
+- frontend linting, tests, and production build;
+- backend compilation and tests;
+- Python recommendation-engine tests;
+- parallel builds of the frontend, backend, and recommendation-worker container images.
+
+Superseded workflow runs are automatically cancelled.
+Dependency caches and Docker layers are reused between runs to reduce execution time.
+
+After a successful push to `main`, the workflow publishes the following images to GitHub Container Registry:
+
+- `ghcr.io/danielmassila/content-recommendation-platform-frontend`;
+- `ghcr.io/danielmassila/content-recommendation-platform-backend`;
+- `ghcr.io/danielmassila/content-recommendation-platform-reco-ml`.
+
+Each image receives an immutable `sha-<commit>` tag and the `latest` tag.
+
 ## Repository structure
 
 ```text
@@ -110,8 +132,8 @@ docs/       Architecture decisions, data strategy, and performance notes
 ## Current scope
 
 This is a local demonstration architecture, not a production deployment template. Runtime hardening, authorization
-roles, CI/CD, cache infrastructure, and observability are intentionally left as explicit future engineering work rather
-than presented as finished features !
+roles, automated deployment, cache infrastructure, and observability are intentionally left as explicit future
+engineering work rather than presented as finished features !
 
 ## Development approach
 
