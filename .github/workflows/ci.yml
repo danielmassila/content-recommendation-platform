@@ -10,6 +10,9 @@ on:
 
   workflow_dispatch: # Manually trigger a workflow in Github Actions
 
+permissions:
+  contents: read
+
 jobs:
   frontend:
     name: Frontend
