@@ -1,0 +1,42 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+  workflow_dispatch: # Manually trigger a workflow in Github Actions
+
+jobs:
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+
+    defaults:
+    run:
+      working-directory: frontend
+
+  backend:
+    name: Backend
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: backend
+
+  python:
+    name: Python
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: reco-ml
+
+  container-images:
+    needs:
+      - frontend
+      - backend
+      - python
