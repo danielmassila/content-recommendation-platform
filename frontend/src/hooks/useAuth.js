@@ -35,7 +35,7 @@ const readStoredUser = () => {
   }
 }
 
-export const AuthProvider = ({ children }) => {
+export const AuthenticationProvider = ({ children }) => {
   const [session, setSession] = useState(readStoredUser)
   const [isLoading, setIsLoading] = useState(Boolean(session.accessToken))
   const [error, setError] = useState(null)
@@ -165,7 +165,7 @@ export const useAuth = () => {
   const context = useContext(AuthContext)
 
   if (!context) {
-    throw new Error('useAuth must be used inside AuthProvider')
+    throw new Error('useAuth must be used inside AuthenticationProvider')
   }
 
   return context
