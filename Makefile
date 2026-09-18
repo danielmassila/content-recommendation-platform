@@ -1,4 +1,4 @@
-.PHONY: help up down reset migrate api frontend demo-data counts py-build py-smoke py-download py-import py-enrich-tmdb py-eval py-reco py-all test-frontend test-backend test-python test-python-docker
+.PHONY: help up tools down reset migrate api frontend demo-data counts py-build py-smoke py-download py-import py-enrich-tmdb py-eval py-reco py-all test-frontend test-backend test-python test-python-docker
 # Help
 
 .DEFAULT_GOAL := help
@@ -12,7 +12,8 @@ endif
 
 help:
 	@echo "Targets:"
-	@echo "  up               Start docker services (db/adminer/etc.)"
+	@echo "  up               Start the application services"
+	@echo "  tools            Start the application services with Adminer"
 	@echo "  down             Stop docker services"
 	@echo "  reset            Stop + remove volumes, then start services"
 	@echo "  migrate          Run Flyway migrations (Spring without web server)"
@@ -39,6 +40,9 @@ help:
 
 up:
 	docker compose up -d
+
+tools:
+	docker compose --profile tools up -d
 
 down:
 	docker compose down
@@ -112,7 +116,7 @@ demo-data: reset migrate py-all py-eval counts
 	@echo "Demo data ready. Start 'make api' and 'make frontend' in separate terminals."
 	@echo " - API      -> http://localhost:8081"
 	@echo " - Frontend -> http://localhost:5173"
-	@echo " - Adminer  -> http://localhost:8082"
+	@echo " - Adminer  -> run 'make tools', then open http://localhost:8082"
 
 
 # Tests
