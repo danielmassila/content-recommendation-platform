@@ -10,6 +10,13 @@ services:
       - reco_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
   backend:
     build:
       context: ./backend
@@ -23,6 +30,10 @@ services:
       APP_JWT_SECRET: ${APP_JWT_SECRET}
     ports:
       - "8081:8081"
+    depends_on:
+      db:
+        condition: service_healthy
+
   frontend:
     build:
       context: ./frontend
@@ -46,7 +57,8 @@ services:
       - ./reco-ml:/jobs
       - ./datasets:/datasets
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     environment:
       DB_HOST: db
       DB_PORT: 5432
@@ -66,6 +78,8 @@ services:
     working_dir: /jobs
     depends_on:
       - db
+      db:
+        condition: service_healthy
     environment:
       DB_HOST: ${DB_HOST:-db}
       DB_PORT: ${DB_PORT:-5432}
