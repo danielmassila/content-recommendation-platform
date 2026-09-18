@@ -102,3 +102,8 @@ jobs:
       - frontend
       - backend
       - python
+    name: Container Images
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
