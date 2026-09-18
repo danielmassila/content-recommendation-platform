@@ -107,3 +107,12 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+
+      - name: Build frontend image
+        run: docker build -t reco-frontend:test ./frontend
+
+      - name: Build backend image
+        run: docker build -t reco-backend:test ./backend
+
+      - name: Build python image
+        run: docker build -t reco-ml:test ./reco-ml
