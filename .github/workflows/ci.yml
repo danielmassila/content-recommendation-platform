@@ -98,21 +98,38 @@ jobs:
 
 
   container-images:
+    name: Container Images
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
     needs:
       - frontend
       - backend
       - python
-    name: Container Images
-    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false # allow all jobs to complete even if one fails
+      matrix:
+        include:
+          - image: frontend
+            context: ./frontend
+          - image: backend
+            context: ./backend
+          - image: reco-ml
+            context: ./reco-ml
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
 
-      - name: Build frontend image
-        run: docker build -t reco-frontend:test ./frontend
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v6
 
-      - name: Build backend image
-        run: docker build -t reco-backend:test ./backend
-
-      - name: Build python image
-        run: docker build -t reco-ml:test ./reco-ml
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          push: false # only build the image
+          tags: content-recommendation-platform-${{ matrix.image }}:ci
+          cache-from: type=gha, scope={ matrix.image }} # fill cache from previous runs of this workflow
+          cache-to: type=gha, mode=max, scope=${{ matrix.image }} # store cache for future runs of this workflow
