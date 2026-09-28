@@ -52,7 +52,7 @@ class RecoApplicationTests {
                 Integer.class
         );
 
-        org.junit.jupiter.api.Assertions.assertTrue(migrationCount >= 7);
+        org.junit.jupiter.api.Assertions.assertTrue(migrationCount >= 8);
         org.junit.jupiter.api.Assertions.assertEquals(1, recommendationTableCount);
     }
 

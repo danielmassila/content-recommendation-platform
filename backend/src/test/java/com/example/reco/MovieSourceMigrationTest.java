@@ -100,4 +100,70 @@ class MovieSourceMigrationTest {
                 VALUES ('Test item', ?, ?, ?, ?) RETURNING id
                 """, Long.class, type, tmdbId, movielensId, imdbId);
     }
+
+    @Test
+    void externalRatingsDoNotRequireOrBelongToFromApplicationUser() {
+        flyway("7").migrate();
+        Long itemId = insert("MOVIE", 603L, null, null);
+        Long userId = jdbc.queryForObject(
+                "INSERT INTO users (email) VALUES ('real@example.com') RETURNING id", Long.class);
+        jdbc.update("INSERT INTO ratings (user_id, item_id, rating) VALUES (?, ?, 3)", userId, itemId);
+        flyway(null).migrate();
+        flyway(null).validate();
+        assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM ratings", Integer.class));
+        assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM movielens_ratings", Integer.class));
+
+        insertExternalRating("snapshot-a", userId, itemId, "4.5");
+        insertExternalRating("snapshot-a", 999999L, itemId, "0.5");
+        jdbc.update("DELETE FROM users WHERE id = ?", userId);
+        assertEquals(2, jdbc.queryForObject("SELECT count(*) FROM movielens_ratings", Integer.class));
+        assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM users", Integer.class));
+        assertThrows(DataIntegrityViolationException.class,
+                () -> jdbc.update("DELETE FROM items WHERE id = ?", itemId));
+    }
+
+    @Test
+    void externalRatingsAreUniqueWithinEachSnapshotAndKeepSourceTime() {
+        flyway(null).migrate();
+        Long itemId = insert("MOVIE", 603L, null, null);
+        insertExternalRating("snapshot-a", 42L, itemId, "5");
+        assertThrows(DataIntegrityViolationException.class,
+                () -> insertExternalRating("snapshot-a", 42L, itemId, "4"));
+        insertExternalRating("snapshot-b", 42L, itemId, "4");
+        assertEquals(2, jdbc.queryForObject("SELECT count(*) FROM movielens_ratings", Integer.class));
+        assertEquals(true, jdbc.queryForObject("""
+                SELECT bool_and(rated_at = TIMESTAMPTZ '2018-01-01 12:00:00+02'
+                    AND ingested_at > rated_at)
+                FROM movielens_ratings
+                """, Boolean.class));
+    }
+
+    @Test
+    void externalRatingsRejectInvalidValuesAndMissingReferences() {
+        flyway(null).migrate();
+        Long itemId = insert("MOVIE", 603L, null, null);
+        for (String rating : new String[]{"0", "5.5", "4.49", "NaN"}) {
+            assertThrows(DataIntegrityViolationException.class,
+                    () -> insertExternalRating("snapshot-a", 42L, itemId, rating));
+        }
+        assertThrows(DataIntegrityViolationException.class,
+                () -> insertExternalRating("snapshot-a", 0L, itemId, "4"));
+        assertThrows(DataIntegrityViolationException.class,
+                () -> insertExternalRating(" ", 42L, itemId, "4"));
+        assertThrows(DataIntegrityViolationException.class,
+                () -> insertExternalRating("snapshot-a", 42L, -1L, "4"));
+        insertExternalRating("snapshot-a", 42L, itemId, "4");
+        for (String column : new String[]{"dataset_version", "movielens_user_id", "item_id",
+                "rating", "rated_at", "ingested_at"}) {
+            assertThrows(DataIntegrityViolationException.class,
+                    () -> jdbc.update("UPDATE movielens_ratings SET " + column + " = NULL"));
+        }
+    }
+
+    private void insertExternalRating(String version, Long userId, Long itemId, String rating) {
+        jdbc.update("""
+                INSERT INTO movielens_ratings (dataset_version, movielens_user_id, item_id, rating, rated_at)
+                VALUES (?, ?, ?, CAST(? AS NUMERIC), TIMESTAMPTZ '2018-01-01 10:00:00+00')
+                """, version, userId, itemId, rating);
+    }
 }
