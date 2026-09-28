@@ -119,3 +119,37 @@ def test_import_skips_ambiguous_links_without_calling_tmdb_for_them(tmp_path):
         assert set(report['rejected_links']) == {9601, 9602}
         client.get_movie.assert_called_once_with(9603)
         assert conn.execute('SELECT count(*) FROM items WHERE tmdb_id=9600').fetchone()[0] == 0
+
+
+def test_staging_is_separate_and_preserves_duplicates_for_validation():
+    import uuid
+    run_id = uuid.uuid4()
+    with psycopg.connect(DSN) as conn:
+        before = conn.execute('SELECT count(*) FROM public.movielens_ratings').fetchone()[0]
+        conn.execute("INSERT INTO staging.movielens_imports(id,dataset_version,source_hashes) VALUES (%s,'staging-test','{}')", (run_id,))
+        for line, value in [(2,4),(3,5)]:
+            conn.execute('''INSERT INTO staging.movielens_ratings
+                VALUES (%s,%s,42,2571,%s,CURRENT_TIMESTAMP)''', (run_id,line,value))
+        assert conn.execute('SELECT count(*) FROM staging.movielens_ratings WHERE import_id=%s',(run_id,)).fetchone()[0] == 2
+        assert conn.execute('SELECT count(*) FROM public.movielens_ratings').fetchone()[0] == before
+        conn.execute('DELETE FROM staging.movielens_imports WHERE id=%s',(run_id,))
+        assert conn.execute('SELECT count(*) FROM staging.movielens_ratings WHERE import_id=%s',(run_id,)).fetchone()[0] == 0
+        assert conn.execute('SELECT count(*) FROM public.movielens_ratings').fetchone()[0] == before
+
+
+def test_staging_tracks_attempts_and_validates_completion():
+    import uuid
+    run_id = uuid.uuid4()
+    with psycopg.connect(DSN) as conn:
+        conn.execute("INSERT INTO staging.movielens_imports(id,dataset_version,source_hashes) VALUES (%s,'retry-test','{}')",(run_id,))
+        with pytest.raises(psycopg.errors.UniqueViolation):
+            with conn.transaction():
+                conn.execute("INSERT INTO staging.movielens_imports(id,dataset_version,source_hashes) VALUES (%s,'retry-test','{}')",(uuid.uuid4(),))
+        with pytest.raises(psycopg.errors.CheckViolation):
+            with conn.transaction():
+                conn.execute("UPDATE staging.movielens_imports SET status='ready' WHERE id=%s",(run_id,))
+        with pytest.raises(psycopg.errors.CheckViolation):
+            with conn.transaction():
+                conn.execute("UPDATE staging.movielens_imports SET status='ready',finished_at=now(),rows_read=2,rows_accepted=1 WHERE id=%s",(run_id,))
+        conn.execute("UPDATE staging.movielens_imports SET status='failed',finished_at=now() WHERE id=%s",(run_id,))
+        conn.execute("INSERT INTO staging.movielens_imports(id,dataset_version,source_hashes) VALUES (%s,'retry-test','{}')",(uuid.uuid4(),))

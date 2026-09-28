@@ -21,10 +21,12 @@ class MovieSourceMigrationTest {
 
     @BeforeEach
     void resetDatabase() {
-        Flyway flyway = flyway(null);
-        flyway.clean();
         jdbc = new JdbcTemplate(new DriverManagerDataSource(
                 POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword()));
+        // This class owns a disposable Testcontainers database; Flyway cleans public only.
+        jdbc.execute("DROP SCHEMA IF EXISTS staging CASCADE");
+        Flyway flyway = flyway(null);
+        flyway.clean();
     }
 
     private Flyway flyway(String target) {

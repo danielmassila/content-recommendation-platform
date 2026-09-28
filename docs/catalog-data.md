@@ -128,3 +128,26 @@ generated July 20, 2023. Keep an archive checksum since `latest` can change.
 Tags and genome scores are not consumed yet. Neither the importer nor the
 in-memory user-neighbor engine is ready for the full volume: streaming imports,
 batched writes and bounded recommendation computations must precede loading it.
+
+## Staging and published data
+
+V9 introduces a separate `staging` schema in the same PostgreSQL database.
+Here, "production" means validated data consumed by the application, not a
+separate production deployment. Existing `public.items`, `public.ratings` and
+`public.movielens_ratings` retain their names and contracts.
+
+- `staging.movielens_imports` identifies each attempt by UUID and records its
+  snapshot, source hashes, counters, status and timestamps. Failed attempts can
+  be retried under a new UUID; concurrent loading attempts for one snapshot are
+  blocked by a unique index.
+- `staging.movielens_ratings` stores typed source rows before movie-ID resolution.
+  Rows reference source line numbers, allowing contradictory duplicate ratings
+  to be detected before publication rather than silently overwritten.
+- Removing an attempt removes its staging rows, never published ratings.
+
+This is the schema-only preparatory step. The existing importer still writes
+published ratings in one transaction, and existing snapshots are not retroactively
+marked ready. Subsequent steps will implement streaming/COPY loading, validation,
+atomic publication and a published-snapshot readiness check in the recommender.
+The new status field alone does not authorize or perform publication. Staging
+separation is logical; separate database roles/permissions are not introduced yet.
