@@ -87,3 +87,14 @@ Legacy JSON-only film identities still require the separate audited backfill.
 **The old `jobs.import_dataset` / `make py-import` command remains the destructive
 legacy demo loader.** Use `jobs.import_movielens` for the new path. Demo-loader
 retirement and existing synthetic-user cleanup are separate migration steps.
+
+### Ambiguous MovieLens correspondences
+
+The importer excludes every MovieLens ID involved in contradictory links or a
+shared TMDB ID. It never chooses the first row or merges films automatically.
+The JSON report lists these IDs under `rejected_links` and counts their ratings
+under `ambiguous_link`. Valid films continue through the normal import path.
+Malformed CSV rows and conflicts with existing catalog identities still fail.
+The standalone `parse_links` function remains strict unless a rejection report
+is explicitly supplied. Memory usage and per-rating SQL writes remain to be
+improved before loading a large dataset.

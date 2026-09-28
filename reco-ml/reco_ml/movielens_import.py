@@ -52,12 +52,12 @@ def parse_ratings(source):
     return list(ratings.values())
 
 
-def read_snapshot(directory: Path):
+def read_snapshot(directory: Path, *, rejected_links=None):
     # Parse exactly the bytes hashed: files cannot change between hashing and parsing.
     content = {name: (directory / name).read_bytes() for name in ('links.csv', 'ratings.csv')}
     hashes = {name: hashlib.sha256(data).hexdigest() for name, data in content.items()}
     digest = hashlib.sha256(''.join(f'{name}:{hashes[name]}\n' for name in sorted(hashes)).encode()).hexdigest()
-    links = parse_links(io.StringIO(content['links.csv'].decode('utf-8-sig')))
+    links = parse_links(io.StringIO(content['links.csv'].decode('utf-8-sig')), rejected=rejected_links)
     ratings = parse_ratings(io.StringIO(content['ratings.csv'].decode('utf-8-sig')))
     return f'sha256:{digest}', hashes, links, ratings
 
@@ -68,13 +68,17 @@ def import_snapshot(conn, directory: Path, client=None):
     A supplied client may fetch missing catalog movies. Without it, missing
     films are reported for later replay. Only HTTP 404 is a nonfatal API result.
     """
-    version, hashes, links, ratings = read_snapshot(directory)
+    rejected_links = {}
+    version, hashes, links, ratings = read_snapshot(directory, rejected_links=rejected_links)
     catalog = [CatalogMovie(*row) for row in conn.execute(
         "SELECT id, tmdb_id, movielens_id, imdb_id FROM items WHERE type='MOVIE' AND tmdb_id IS NOT NULL"
     ).fetchall()]
     resolver = MovieResolver(links, catalog)
     resolved, rejected = {}, {}
     for movie_id in sorted({rating.movie_id for rating in ratings}):
+        if movie_id in rejected_links:
+            rejected[movie_id] = rejected_links[movie_id]
+            continue
         result = resolver.resolve(movie_id)
         if result.status == ResolutionStatus.MISSING_CATALOG_MOVIE and client is not None:
             try:
@@ -122,6 +126,6 @@ def import_snapshot(conn, directory: Path, client=None):
         inserted += row is not None
     accepted = len(ratings) - sum(rejection_counts.values())
     return {'dataset_version': version, 'sha256': hashes, 'ratings_read': len(ratings),
-            'inserted': inserted, 'already_present': accepted - inserted,
+            'rejected_links': rejected_links, 'inserted': inserted, 'already_present': accepted - inserted,
             'rejected_ratings': dict(rejection_counts),
             'unresolved_movies': [{'movieId': movie_id, 'reason': reason} for movie_id, reason in rejected.items()]}

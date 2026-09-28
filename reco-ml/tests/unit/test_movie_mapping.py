@@ -86,3 +86,21 @@ def test_duplicate_catalog_identities_fail(catalog):
 def test_existing_matching_mapping_is_resolved():
     result = MovieResolver(links(), [CatalogMovie(125, 603, 2571, "tt0133093")]).resolve(2571)
     assert result.item_id == 125
+
+
+@pytest.mark.parametrize('rows', [
+    '1,0000001,603\n2,0000002,603\n3,0000003,604\n',
+    '2,0000002,603\n3,0000003,604\n1,0000001,603\n',
+])
+def test_tolerant_parser_excludes_every_owner_of_ambiguous_tmdb_id(rows):
+    rejected = {}
+    parsed = parse_links(StringIO('movieId,imdbId,tmdbId\n' + rows), rejected=rejected)
+    assert set(parsed) == {3}
+    assert rejected == {1: 'ambiguous_link', 2: 'ambiguous_link'}
+
+
+def test_contradictory_rows_also_quarantine_other_owners():
+    rejected = {}
+    parsed = parse_links(StringIO('movieId,imdbId,tmdbId\n1,0000001,603\n1,0000001,604\n2,0000002,603\n'), rejected=rejected)
+    assert parsed == {}
+    assert set(rejected) == {1, 2}

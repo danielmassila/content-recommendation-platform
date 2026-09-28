@@ -50,17 +50,20 @@ def _positive_id(value: str, column: str, line: int) -> int:
     return int(value)
 
 
-def parse_links(source: TextIO) -> dict[int, MovieLink]:
+def parse_links(source: TextIO, *, rejected: dict[int, str] | None = None) -> dict[int, MovieLink]:
     """Parse links.csv; blank external IDs are missing, malformed IDs are errors.
     Identical duplicate rows are harmless. Contradictory rows and multiple
     MovieLens IDs for one TMDB ID require review under the current schema.
+    When rejected is provided, all ambiguous IDs are excluded and reported there;
+    otherwise the parser remains strict. Malformed rows always fail.
     """
     reader = csv.DictReader(source)
     required = {"movieId", "imdbId", "tmdbId"}
     if not required.issubset(reader.fieldnames or []):
         raise ValueError("links.csv requires movieId, imdbId and tmdbId columns")
     links: dict[int, MovieLink] = {}
-    tmdb_owners: dict[int, int] = {}
+    tmdb_owners: dict[int, set[int]] = {}
+    conflicts: set[int] = set()
     for row in reader:
         line = reader.line_num
         if None in row or any(row[key] is None for key in required):
@@ -75,13 +78,18 @@ def parse_links(source: TextIO) -> dict[int, MovieLink]:
             imdb_id = "tt" + imdb_raw.zfill(7)
         link = MovieLink(movie_id, tmdb_id, imdb_id)
         if movie_id in links and links[movie_id] != link:
-            raise MappingConflict(f"Line {line}: conflicting links for MovieLens {movie_id}")
+            conflicts.add(movie_id)
         if tmdb_id is not None:
-            owner = tmdb_owners.get(tmdb_id)
-            if owner is not None and owner != movie_id:
-                raise MappingConflict(f"Line {line}: TMDB {tmdb_id} has multiple MovieLens IDs")
-            tmdb_owners[tmdb_id] = movie_id
+            tmdb_owners.setdefault(tmdb_id, set()).add(movie_id)
         links[movie_id] = link
+    for owners in tmdb_owners.values():
+        if len(owners) > 1:
+            conflicts.update(owners)
+    if conflicts and rejected is None:
+        raise MappingConflict(f"Ambiguous MovieLens mappings: {sorted(conflicts)}")
+    for movie_id in sorted(conflicts):
+        rejected[movie_id] = "ambiguous_link"
+        links.pop(movie_id, None)
     return links
 
 

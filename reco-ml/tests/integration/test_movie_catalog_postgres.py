@@ -103,3 +103,19 @@ def test_movielens_temporary_api_failure_rolls_back_import(tmp_path):
             import_snapshot(conn, tmp_path, client)
     with psycopg.connect(DSN) as conn:
         assert conn.execute('SELECT count(*) FROM items WHERE tmdb_id=9001').fetchone()[0] == 0
+
+
+def test_import_skips_ambiguous_links_without_calling_tmdb_for_them(tmp_path):
+    from reco_ml.movielens_import import import_snapshot
+    from unittest.mock import Mock
+    (tmp_path / 'links.csv').write_text('movieId,imdbId,tmdbId\n9601,0000001,9600\n9602,0000002,9600\n9603,0133093,9603\n')
+    (tmp_path / 'ratings.csv').write_text('userId,movieId,rating,timestamp\n42,9601,4,1\n42,9602,5,1\n42,9603,4,1\n')
+    client = Mock()
+    client.get_movie.return_value = payload(9603)
+    with psycopg.connect(DSN) as conn:
+        report = import_snapshot(conn, tmp_path, client)
+        assert report['inserted'] == 1
+        assert report['rejected_ratings'] == {'ambiguous_link': 2}
+        assert set(report['rejected_links']) == {9601, 9602}
+        client.get_movie.assert_called_once_with(9603)
+        assert conn.execute('SELECT count(*) FROM items WHERE tmdb_id=9600').fetchone()[0] == 0
