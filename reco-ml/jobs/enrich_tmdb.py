@@ -10,7 +10,7 @@ from reco_ml.db import get_db_connection
 from reco_ml.tmdb_client import TmdbClient
 
 
-TMDB_IMAGE_BASE_URL = "https://image.tmdb.org/t/p"
+from reco_ml.tmdb_metadata import to_tmdb_metadata as _to_tmdb_metadata
 
 
 def _load_metadata(raw_metadata) -> dict:
@@ -21,45 +21,6 @@ def _load_metadata(raw_metadata) -> dict:
         return raw_metadata
 
     return json.loads(raw_metadata)
-
-
-def _to_tmdb_metadata(payload: dict) -> dict:
-    release_date = payload.get("release_date") or None
-    year = int(release_date[:4]) if release_date and release_date[:4].isdigit() else None
-    credits = payload.get("credits") or {}
-    directors = [
-        member.get("name")
-        for member in credits.get("crew", [])
-        if member.get("job") == "Director" and member.get("name")
-    ]
-    cast = [
-        member.get("name")
-        for member in credits.get("cast", [])[:12]
-        if member.get("name")
-    ]
-
-    return {
-        "tmdb": {
-            "id": payload.get("id"),
-            "posterPath": payload.get("poster_path"),
-            "backdropPath": payload.get("backdrop_path"),
-            "imageBaseUrl": TMDB_IMAGE_BASE_URL,
-            "homepage": payload.get("homepage"),
-            "popularity": payload.get("popularity"),
-            "voteAverage": payload.get("vote_average"),
-            "voteCount": payload.get("vote_count"),
-        },
-        "overview": payload.get("overview"),
-        "releaseDate": release_date,
-        "runtime": payload.get("runtime"),
-        "year": year,
-        "genres": [genre["name"] for genre in payload.get("genres", [])],
-        "directors": directors,
-        "cast": cast,
-        "actors": cast,
-        "originalLanguage": payload.get("original_language"),
-        "originalTitle": payload.get("original_title"),
-    }
 
 
 def _merge_metadata(current_metadata: dict, tmdb_payload: dict) -> dict:
