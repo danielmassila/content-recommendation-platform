@@ -98,3 +98,24 @@ Malformed CSV rows and conflicts with existing catalog identities still fail.
 The standalone `parse_links` function remains strict unless a rejection report
 is explicitly supplied. Memory usage and per-rating SQL writes remain to be
 improved before loading a large dataset.
+
+## Recommendations with external neighbors
+
+The recommendation CLI accepts `--dataset-version <exact-sha256-version>` to
+combine that MovieLens snapshot with application ratings. Positive computation
+IDs represent application users; negative IDs represent MovieLens neighbors.
+This reversible encoding never changes persisted user IDs. Results are written
+only for application users, and popularity statistics use the selected combined
+corpus. Unknown or empty snapshots fail before recommendations are rewritten.
+
+Without the flag, the existing application-only behavior remains, including
+backend-triggered jobs. Backend configuration of the snapshot and offline
+evaluation of the external corpus remain separate follow-up work.
+
+The next dataset will be **MovieLens latest Full (`ml-latest.zip`)**. The
+[official README](https://files.grouplens.org/datasets/movielens/ml-latest-README.html)
+describes 33,832,162 ratings, 2,328,315 tag applications and 86,537 movies,
+generated July 20, 2023. Keep an archive checksum since `latest` can change.
+Tags and genome scores are not consumed yet. Neither the importer nor the
+in-memory user-neighbor engine is ready for the full volume: streaming imports,
+batched writes and bounded recommendation computations must precede loading it.

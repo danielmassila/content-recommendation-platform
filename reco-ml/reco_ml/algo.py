@@ -1,3 +1,4 @@
+from reco_ml.rating_corpus import load_corpus
 import statistics
 import math
 import heapq
@@ -605,6 +606,7 @@ def recompute_all_recommendations(
     n_per_user: int = DEMO_CONFIG["n_per_user"],
     k_neighbors: int = DEMO_CONFIG["k_neighbors"],
     algo_version: str = "hybrid_usercf_pop",
+    dataset_version: str | None = None,
 ) -> None:
     user_ids = repositories.fetch_all_users(conn)
     item_ids = repositories.fetch_all_items(conn)
@@ -612,9 +614,12 @@ def recompute_all_recommendations(
     all_items_set = set(item_ids)
     preferences_by_user = repositories.fetch_user_preferences(conn)
 
-    ratings = repositories.fetch_all_ratings(conn)
-    stats_by_items = repositories.get_stats_by_item(conn)
-    global_rating = repositories.get_global_rating(conn)
+    if dataset_version is None:
+        ratings = repositories.fetch_all_ratings(conn)
+        stats_by_items = repositories.get_stats_by_item(conn)
+        global_rating = repositories.get_global_rating(conn)
+    else:
+        ratings, stats_by_items, global_rating = load_corpus(conn, dataset_version)
 
     ratings_by_user = build_ratings_by_user(ratings)
     users_by_item = build_users_by_item(ratings)
@@ -672,6 +677,7 @@ def recompute_user_recommendations(
     n_per_user: int = DEMO_CONFIG["n_per_user"],
     k_neighbors: int = DEMO_CONFIG["k_neighbors"],
     algo_version: str = "hybrid_usercf_pop",
+    dataset_version: str | None = None,
 ) -> None:
     user_ids = repositories.fetch_all_users(conn)
     if user_id not in user_ids:
@@ -680,9 +686,12 @@ def recompute_user_recommendations(
     item_ids = repositories.fetch_all_items(conn)
     item_profiles = repositories.fetch_all_item_profiles(conn)
     preferences_by_user = repositories.fetch_user_preferences(conn)
-    ratings = repositories.fetch_all_ratings(conn)
-    stats_by_items = repositories.get_stats_by_item(conn)
-    global_rating = repositories.get_global_rating(conn)
+    if dataset_version is None:
+        ratings = repositories.fetch_all_ratings(conn)
+        stats_by_items = repositories.get_stats_by_item(conn)
+        global_rating = repositories.get_global_rating(conn)
+    else:
+        ratings, stats_by_items, global_rating = load_corpus(conn, dataset_version)
 
     ratings_by_user = build_ratings_by_user(ratings)
     users_by_item = build_users_by_item(ratings)

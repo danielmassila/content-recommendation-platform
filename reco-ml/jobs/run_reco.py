@@ -28,6 +28,7 @@ def main() -> None:
         help="Run sanity checks after recomputation (counts, top users)",
     )
 
+    parser.add_argument("--dataset-version", help="Exact MovieLens snapshot to use as external neighbors")
     args = parser.parse_args()
 
     start = time.perf_counter()
@@ -39,6 +40,7 @@ def main() -> None:
                 n_per_user=args.n,
                 k_neighbors=args.k,
                 algo_version=args.algo,
+                dataset_version=args.dataset_version,
             )
         else:
             recompute_user_recommendations(
@@ -47,6 +49,7 @@ def main() -> None:
                 n_per_user=args.n,
                 k_neighbors=args.k,
                 algo_version=args.algo,
+                dataset_version=args.dataset_version,
             )
 
         end = time.perf_counter()

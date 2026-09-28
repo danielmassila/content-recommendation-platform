@@ -105,4 +105,4 @@ def get_global_rating(conn) -> float:
             """
         )
         row = cur.fetchone()
-        return float(row[0])
+        return float(row[0]) if row[0] is not None else 0.0
