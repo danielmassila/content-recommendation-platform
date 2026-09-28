@@ -50,3 +50,40 @@ Never point this variable at the application's database.
 `TMDB_ENRICH_LIMIT`, `TMDB_ENRICH_BATCH_SIZE` and `TMDB_REQUEST_DELAY_SECONDS` bound each run. For horizontally scaled
 production workloads, move enrichment requests to a durable queue and use a distributed rate limiter before adding
 multiple workers.
+
+## Non-destructive MovieLens import
+
+After applying V8, import historical ratings into `movielens_ratings`:
+
+```bash
+docker compose run --rm reco-job python -m jobs.import_movielens
+```
+
+Add `--fetch-missing` to retrieve missing catalog films through TMDB (requires
+`TMDB_API_KEY`). Without that option, missing films are reported for a later run.
+Existing catalog films are not fetched again. Source files default to
+`/datasets/raw_data`; `--data-dir` can select another snapshot directory.
+
+The command hashes and parses the same bytes from `links.csv` and `ratings.csv`.
+Its JSON output includes the dataset version, per-file SHA-256, inserted/existing
+counts, rejected-rating counts and unresolved MovieLens IDs. Preserve this output
+with the input files as the import manifest. Exact duplicate input ratings are
+collapsed before the reported `ratings_read` count; contradictory duplicates and
+invalid rows fail validation. A changed file produces a different dataset version.
+Future recommendation reads must explicitly select one snapshot.
+
+The complete import commits together, including new films and mappings. A 404 is
+reported as unresolved; temporary API failures and identity conflicts roll back
+the operation. Replaying the same files can resolve previously missing films
+without duplicating already imported ratings or changing their ingestion date.
+MovieLens event timestamps are preserved in UTC. No application users are created,
+and application ratings and recommendations are not rewritten.
+
+This first implementation loads the snapshot into memory and writes ratings one
+at a time. It targets the small dataset; batching and shorter transactions for
+large datasets remain future work. It does not parse tags or change the recommender.
+Legacy JSON-only film identities still require the separate audited backfill.
+
+**The old `jobs.import_dataset` / `make py-import` command remains the destructive
+legacy demo loader.** Use `jobs.import_movielens` for the new path. Demo-loader
+retirement and existing synthetic-user cleanup are separate migration steps.
