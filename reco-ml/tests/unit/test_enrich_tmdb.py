@@ -1,9 +1,7 @@
-import io
-import json
-import urllib.error
+from jobs.enrich_tmdb import _merge_metadata
 from unittest.mock import MagicMock, patch
 
-from jobs.enrich_tmdb import _merge_metadata, _request_tmdb_movie
+from jobs.enrich_tmdb import main
 
 
 def test_merge_metadata_preserves_source_ids_and_tracks_enrichment_time():
@@ -18,41 +16,20 @@ def test_merge_metadata_preserves_source_ids_and_tracks_enrichment_time():
     assert merged["tmdbEnrichedAt"].endswith("+00:00")
 
 
-def test_tmdb_request_retries_transient_http_errors():
-    transient_error = urllib.error.HTTPError(
-        "https://example.test",
-        503,
-        "Unavailable",
-        {},
-        io.BytesIO(),
-    )
-    response = MagicMock()
-    response.__enter__.return_value.read.return_value = json.dumps({"id": 42}).encode()
-
-    with patch("jobs.enrich_tmdb.urllib.request.urlopen", side_effect=[transient_error, response]) as urlopen:
-        with patch("jobs.enrich_tmdb.time.sleep") as sleep:
-            payload = _request_tmdb_movie(42, "secret")
-
-    assert payload == {"id": 42}
-    assert urlopen.call_count == 2
-    sleep.assert_called_once_with(1)
-
-
-def test_tmdb_request_does_not_retry_not_found():
-    not_found = urllib.error.HTTPError(
-        "https://example.test",
-        404,
-        "Not found",
-        {},
-        io.BytesIO(),
-    )
-
-    with patch("jobs.enrich_tmdb.urllib.request.urlopen", side_effect=not_found) as urlopen:
-        try:
-            _request_tmdb_movie(999, "secret")
-        except urllib.error.HTTPError as error:
-            assert error.code == 404
-        else:
-            raise AssertionError("Expected HTTPError")
-
-    assert urlopen.call_count == 1
+def test_enrichment_uses_shared_client_and_preserves_internal_item_id(monkeypatch):
+    monkeypatch.setenv("TMDB_API_KEY", "test-key")
+    monkeypatch.setenv("TMDB_REQUEST_DELAY_SECONDS", "0")
+    connection = MagicMock()
+    with patch("jobs.enrich_tmdb.TmdbClient") as client_class, \
+            patch("jobs.enrich_tmdb.get_db_connection") as connect, \
+            patch("jobs.enrich_tmdb._fetch_items_to_enrich", return_value=[(125, {"tmdbId": 603})]), \
+            patch("jobs.enrich_tmdb._update_item_metadata") as update:
+        connect.return_value.__enter__.return_value = connection
+        client_class.return_value.get_movie.return_value = {"id": 603, "genres": [], "credits": {}}
+        main()
+    client_class.assert_called_once_with("test-key")
+    client_class.return_value.get_movie.assert_called_once_with(603)
+    assert update.call_args.args[0] is connection
+    assert update.call_args.args[1] == 125
+    assert update.call_args.args[2]["tmdb"]["id"] == 603
+    connection.commit.assert_called()

@@ -4,14 +4,12 @@ import json
 import time
 from datetime import datetime, timezone
 import urllib.error
-import urllib.parse
-import urllib.request
 
 from reco_ml.config import get_env
 from reco_ml.db import get_db_connection
+from reco_ml.tmdb_client import TmdbClient
 
 
-TMDB_API_BASE_URL = "https://api.themoviedb.org/3"
 TMDB_IMAGE_BASE_URL = "https://image.tmdb.org/t/p"
 
 
@@ -23,35 +21,6 @@ def _load_metadata(raw_metadata) -> dict:
         return raw_metadata
 
     return json.loads(raw_metadata)
-
-
-def _request_tmdb_movie(tmdb_id: int, api_key: str, max_attempts: int = 3) -> dict:
-    query = urllib.parse.urlencode(
-        {
-            "api_key": api_key,
-            "append_to_response": "credits",
-            "language": "fr-FR",
-        }
-    )
-    url = f"{TMDB_API_BASE_URL}/movie/{tmdb_id}?{query}"
-
-    request = urllib.request.Request(
-        url,
-        headers={"Accept": "application/json", "User-Agent": "content-recommendation-platform/1.0"},
-    )
-    for attempt in range(max_attempts):
-        try:
-            with urllib.request.urlopen(request, timeout=15) as response:
-                return json.loads(response.read().decode("utf-8"))
-        except urllib.error.HTTPError as error:
-            is_retryable = error.code == 429 or error.code >= 500
-            if not is_retryable or attempt == max_attempts - 1:
-                raise
-            retry_after = error.headers.get("Retry-After") if error.headers else None
-            delay = float(retry_after) if retry_after else 2 ** attempt
-            time.sleep(delay)
-
-    raise RuntimeError("TMDB request failed without an HTTP response")
 
 
 def _to_tmdb_metadata(payload: dict) -> dict:
@@ -136,7 +105,7 @@ def _update_item_metadata(conn, item_id: int, metadata: dict) -> None:
 
 
 def main() -> None:
-    api_key = get_env("TMDB_API_KEY")
+    client = TmdbClient(get_env("TMDB_API_KEY"))
     limit = int(get_env("TMDB_ENRICH_LIMIT", "100"))
     delay_seconds = float(get_env("TMDB_REQUEST_DELAY_SECONDS", "0.25"))
     batch_size = max(1, int(get_env("TMDB_ENRICH_BATCH_SIZE", "25")))
@@ -151,7 +120,7 @@ def main() -> None:
             tmdb_id = metadata.get("tmdbId")
 
             try:
-                payload = _request_tmdb_movie(tmdb_id, api_key)
+                payload = client.get_movie(tmdb_id)
                 enriched_metadata = _merge_metadata(metadata, payload)
                 _update_item_metadata(conn, item_id, enriched_metadata)
                 enriched_count += 1
@@ -160,9 +129,9 @@ def main() -> None:
             except urllib.error.HTTPError as error:
                 skipped_count += 1
                 print(f"TMDB skip item_id={item_id} tmdb_id={tmdb_id}: HTTP {error.code}")
-            except urllib.error.URLError as error:
+            except (urllib.error.URLError, TimeoutError) as error:
                 skipped_count += 1
-                print(f"TMDB skip item_id={item_id} tmdb_id={tmdb_id}: {error.reason}")
+                print(f"TMDB skip item_id={item_id} tmdb_id={tmdb_id}: {getattr(error, 'reason', 'request timed out')}")
             except (ValueError, json.JSONDecodeError) as error:
                 skipped_count += 1
                 print(f"TMDB skip item_id={item_id} tmdb_id={tmdb_id}: invalid payload ({error})")
