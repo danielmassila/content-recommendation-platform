@@ -32,6 +32,18 @@ public class Item {
     @Column(columnDefinition = "jsonb")
     private String metadata;
 
+    @Column(name = "tmdb_id")
+    private Long tmdbId;
+
+    @Column(name = "imdb_id", length = 32)
+    private String imdbId;
+
+    @Column(name = "movielens_id")
+    private Long movielensId;
+
+    @Column(name = "tmdb_last_synced_at")
+    private Instant tmdbLastSyncedAt;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -83,5 +95,37 @@ public class Item {
 
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    public Long getTmdbId() {
+        return tmdbId;
+    }
+
+    public void setTmdbId(Long tmdbId) {
+        this.tmdbId = tmdbId;
+    }
+
+    public String getImdbId() {
+        return imdbId;
+    }
+
+    public void setImdbId(String imdbId) {
+        this.imdbId = imdbId;
+    }
+
+    public Long getMovielensId() {
+        return movielensId;
+    }
+
+    public void setMovielensId(Long movielensId) {
+        this.movielensId = movielensId;
+    }
+
+    public Instant getTmdbLastSyncedAt() {
+        return tmdbLastSyncedAt;
+    }
+
+    public void setTmdbLastSyncedAt(Instant tmdbLastSyncedAt) {
+        this.tmdbLastSyncedAt = tmdbLastSyncedAt;
     }
 }

@@ -1,5 +1,9 @@
 package com.example.reco;
 
+import com.example.reco.model.Item;
+import com.example.reco.model.ItemType;
+import jakarta.persistence.EntityManager;
+import java.time.Instant;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -7,6 +11,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.transaction.annotation.Transactional;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -18,6 +23,9 @@ class RecoApplicationTests {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private EntityManager entityManager;
 
     @Container
     static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine")
@@ -44,8 +52,29 @@ class RecoApplicationTests {
                 Integer.class
         );
 
-        org.junit.jupiter.api.Assertions.assertTrue(migrationCount >= 6);
+        org.junit.jupiter.api.Assertions.assertTrue(migrationCount >= 7);
         org.junit.jupiter.api.Assertions.assertEquals(1, recommendationTableCount);
+    }
+
+    @Test
+    @Transactional
+    void movieSourceIdentifiersRoundTripThroughJpa() {
+        Item movie = new Item("The Matrix", ItemType.MOVIE, "{}");
+        movie.setTmdbId(603L);
+        movie.setImdbId("tt0133093");
+        movie.setMovielensId(2571L);
+        Instant syncedAt = Instant.parse("2026-09-28T10:00:00Z");
+        movie.setTmdbLastSyncedAt(syncedAt);
+        entityManager.persist(movie);
+        entityManager.flush();
+        Long internalId = movie.getId();
+        entityManager.clear();
+
+        Item loaded = entityManager.find(Item.class, internalId);
+        org.junit.jupiter.api.Assertions.assertEquals(603L, loaded.getTmdbId());
+        org.junit.jupiter.api.Assertions.assertEquals("tt0133093", loaded.getImdbId());
+        org.junit.jupiter.api.Assertions.assertEquals(2571L, loaded.getMovielensId());
+        org.junit.jupiter.api.Assertions.assertEquals(syncedAt, loaded.getTmdbLastSyncedAt());
     }
 
 }
