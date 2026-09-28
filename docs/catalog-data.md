@@ -108,9 +108,18 @@ This reversible encoding never changes persisted user IDs. Results are written
 only for application users, and popularity statistics use the selected combined
 corpus. Unknown or empty snapshots fail before recommendations are rewritten.
 
-Without the flag, the existing application-only behavior remains, including
-backend-triggered jobs. Backend configuration of the snapshot and offline
-evaluation of the external corpus remain separate follow-up work.
+Without the flag, the existing application-only behavior remains. For jobs
+triggered by Spring, set `APP_RECOMMENDATIONS_DATASET_VERSION` to the exact
+`dataset_version` returned by the import. Blank values omit the CLI argument.
+Restart the local backend (`make api`) after changing `.env`; for a containerized
+backend recreate it with `docker compose up -d --build backend`. The variable is
+passed for both targeted and global recalculations. No snapshot is chosen
+implicitly, and an unknown snapshot fails the Python job. Offline evaluation
+of the external corpus remains separate follow-up work.
+
+This setting configures the command only: the existing process launcher still
+requires Docker CLI/Compose, access to the Docker engine and the Compose file.
+It does not provision those capabilities in the backend container.
 
 The next dataset will be **MovieLens latest Full (`ml-latest.zip`)**. The
 [official README](https://files.grouplens.org/datasets/movielens/ml-latest-README.html)

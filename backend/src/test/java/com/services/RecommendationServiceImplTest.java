@@ -285,5 +285,30 @@ public class RecommendationServiceImplTest {
     }
 
 
+    @Test
+    void shouldPassConfiguredSnapshotForUserAndGlobalJobs() {
+        for (String mode : List.of("user:42", "all")) {
+            org.springframework.test.util.ReflectionTestUtils.setField(
+                    recommendationService, "datasetVersion", "  sha256:test-snapshot  ");
+            ProcessBuilder builder = org.springframework.test.util.ReflectionTestUtils.invokeMethod(
+                    recommendationService, "createProcessBuilder", mode);
+            var command = builder.command();
+            assertEquals("sha256:test-snapshot", command.get(command.indexOf("--dataset-version") + 1));
+            assertEquals(1, java.util.Collections.frequency(command, "--dataset-version"));
+            assertEquals(mode.startsWith("user:"), command.contains("--user-id"));
+        }
+    }
+
+    @Test
+    void shouldOmitSnapshotWhenUnsetOrBlank() {
+        for (String value : new String[]{null, "", "   "}) {
+            org.springframework.test.util.ReflectionTestUtils.setField(recommendationService, "datasetVersion", value);
+            ProcessBuilder builder = org.springframework.test.util.ReflectionTestUtils.invokeMethod(
+                    recommendationService, "createProcessBuilder", "user:42");
+            assertFalse(builder.command().contains("--dataset-version"));
+            assertEquals("42", builder.command().get(builder.command().indexOf("--user-id") + 1));
+        }
+    }
+
     // getAllRecommendationsOK getUserRecommendations recomputeRecommendationsForUser recomputeAllRecommendations dismissItemForUser
 }

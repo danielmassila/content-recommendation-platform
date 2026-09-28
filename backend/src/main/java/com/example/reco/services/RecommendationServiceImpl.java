@@ -29,6 +29,9 @@ public class RecommendationServiceImpl implements RecommendationService {
     @Value("${app.recommendations.compose-file:../docker-compose.yml}")
     private String composeFile;
 
+    @Value("${app.recommendations.dataset-version:}")
+    private String datasetVersion;
+
     public RecommendationServiceImpl(RecommendationRepository recommendationRepository) {
         this.recommendationRepository = recommendationRepository;
     }
@@ -126,6 +129,10 @@ public class RecommendationServiceImpl implements RecommendationService {
         if (mode.startsWith("user:")) {
             command.add("--user-id");
             command.add(mode.substring("user:".length()));
+        }
+        if (datasetVersion != null && !datasetVersion.isBlank()) {
+            command.add("--dataset-version");
+            command.add(datasetVersion.strip());
         }
         return new ProcessBuilder(command);
     }
