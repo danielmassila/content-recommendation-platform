@@ -20,7 +20,7 @@ def schema():
         return
     migrations = Path(__file__).resolve().parents[3] / "backend/src/main/resources/db/migration"
     with psycopg.connect(DSN) as conn:
-        for migration in sorted(migrations.glob("V*__*.sql")):
+        for migration in sorted(migrations.glob("V*__*.sql"), key=lambda path: int(path.name.split("__")[0][1:])):
             conn.execute(migration.read_text())
 
 
@@ -153,3 +153,26 @@ def test_staging_tracks_attempts_and_validates_completion():
                 conn.execute("UPDATE staging.movielens_imports SET status='ready',finished_at=now(),rows_read=2,rows_accepted=1 WHERE id=%s",(run_id,))
         conn.execute("UPDATE staging.movielens_imports SET status='failed',finished_at=now() WHERE id=%s",(run_id,))
         conn.execute("INSERT INTO staging.movielens_imports(id,dataset_version,source_hashes) VALUES (%s,'retry-test','{}')",(uuid.uuid4(),))
+
+
+def test_streaming_staging_batches_and_failure_are_isolated(tmp_path):
+    from reco_ml.staging_import import stage_snapshot
+    from reco_ml.movielens_import import read_snapshot
+    (tmp_path / 'links.csv').write_text('movieId,imdbId,tmdbId\n1,,862\n')
+    path = tmp_path / 'ratings.csv'
+    path.write_text('userId,movieId,rating,timestamp\n1,1,4,1\n2,1,5,2\n3,1,3,3\n')
+    expected = read_snapshot(tmp_path)[0]
+    with psycopg.connect(DSN) as conn:
+        before = conn.execute('SELECT count(*) FROM public.movielens_ratings').fetchone()[0]
+        report = stage_snapshot(conn, tmp_path, batch_size=2)
+        assert report['rows_staged'] == 3
+        assert report['dataset_version'] == expected
+        assert conn.execute('SELECT status,rows_read,rows_accepted,staged_at IS NOT NULL FROM staging.movielens_imports WHERE id=%s',(report['import_id'],)).fetchone() == ('loading',3,0,True)
+        assert conn.execute('SELECT count(*) FROM public.movielens_ratings').fetchone()[0] == before
+    path.write_text('userId,movieId,rating,timestamp\n1,1,4,1\n2,1,5,2\n3,1,NaN,3\n')
+    with psycopg.connect(DSN) as conn:
+        with pytest.raises(ValueError):
+            stage_snapshot(conn,tmp_path,batch_size=2)
+        row=conn.execute("SELECT id,rows_read FROM staging.movielens_imports WHERE status='failed' AND error_message='ValueError' ORDER BY started_at DESC LIMIT 1").fetchone()
+        assert row[1] == 2
+        assert conn.execute('SELECT count(*) FROM staging.movielens_ratings WHERE import_id=%s',(row[0],)).fetchone()[0] == 2

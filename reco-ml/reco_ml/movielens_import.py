@@ -24,12 +24,11 @@ class ExternalRating:
     rated_at: datetime
 
 
-def parse_ratings(source):
+def iter_ratings(source):
     reader = csv.DictReader(source)
     required = {'userId', 'movieId', 'rating', 'timestamp'}
     if not required.issubset(reader.fieldnames or []):
         raise ValueError('ratings.csv requires userId, movieId, rating and timestamp')
-    ratings = {}
     for row in reader:
         try:
             if None in row or any(row[key] is None for key in required):
@@ -45,9 +44,15 @@ def parse_ratings(source):
             rating = ExternalRating(user_id, movie_id, value, datetime.fromtimestamp(int(stamp), timezone.utc))
         except (ValueError, InvalidOperation, OverflowError, OSError) as error:
             raise ValueError(f'Invalid rating at line {reader.line_num}') from error
-        key = user_id, movie_id
+        yield reader.line_num, rating
+
+
+def parse_ratings(source):
+    ratings = {}
+    for line, rating in iter_ratings(source):
+        key = rating.user_id, rating.movie_id
         if key in ratings and ratings[key] != rating:
-            raise MappingConflict(f'Conflicting ratings at line {reader.line_num}')
+            raise MappingConflict(f'Conflicting ratings at line {line}')
         ratings[key] = rating
     return list(ratings.values())
 

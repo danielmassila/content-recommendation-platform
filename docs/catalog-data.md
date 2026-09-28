@@ -151,3 +151,21 @@ marked ready. Subsequent steps will implement streaming/COPY loading, validation
 atomic publication and a published-snapshot readiness check in the recommender.
 The new status field alone does not authorize or perform publication. Staging
 separation is logical; separate database roles/permissions are not introduced yet.
+
+### Batched staging loader (V10)
+
+`python -m jobs.stage_movielens --data-dir /datasets/validation-small --batch-size 10000`
+loads only staging. The loader copies and hashes source files into a temporary
+local directory, streams ratings, and commits each COPY batch together with its
+progress counter. Temporary disk space roughly equal to the two CSV files is
+required; rating memory is bounded by batch size. Source files must remain stable
+while the initial copy is made. Keep original files for subsequent mapping checks.
+
+`staged_at` records completed loading, but status stays `loading` until validation
+and publication are implemented. Accepted/rejected counts are reserved for that
+validation. Duplicate source rows remain in staging. On a caught failure, the
+current batch rolls back and the attempt becomes `failed`; committed staging rows
+remain for inspection. A hard process kill or lost DB connection may leave a
+`loading` attempt requiring manual review. Failed attempts can be restarted from
+the beginning with a new UUID; exact-line resume is not implemented. No production
+ratings, accounts or catalogue films are changed by this command.
