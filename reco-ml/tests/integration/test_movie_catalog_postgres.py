@@ -176,3 +176,47 @@ def test_streaming_staging_batches_and_failure_are_isolated(tmp_path):
         row=conn.execute("SELECT id,rows_read FROM staging.movielens_imports WHERE status='failed' AND error_message='ValueError' ORDER BY started_at DESC LIMIT 1").fetchone()
         assert row[1] == 2
         assert conn.execute('SELECT count(*) FROM staging.movielens_ratings WHERE import_id=%s',(row[0],)).fetchone()[0] == 2
+
+
+def test_publication_is_atomic_deduplicated_and_replayable(tmp_path):
+    from reco_ml.staging_import import stage_snapshot
+    from reco_ml.staging_publish import publish_snapshot
+    links = tmp_path / 'links.csv'
+    links.write_text('movieId,imdbId,tmdbId\n9700,,9700\n9701,,\n')
+    (tmp_path / 'ratings.csv').write_text('userId,movieId,rating,timestamp\n42,9700,4,1\n42,9700,4,1\n42,9701,3,1\n')
+    with psycopg.connect(DSN) as conn:
+        upsert_tmdb_movie(conn,payload(9700))
+    with psycopg.connect(DSN) as conn:
+        staged=stage_snapshot(conn,tmp_path,batch_size=1)
+    with psycopg.connect(DSN) as conn:
+        report=publish_snapshot(conn,staged['import_id'],links)
+        assert report['published']==1
+        assert report['duplicate_rows']==1
+        assert report['rejected_ratings']=={'missing_tmdb_id':1}
+        conn.rollback()
+    with psycopg.connect(DSN) as conn:
+        assert conn.execute('SELECT count(*) FROM public.movielens_ratings WHERE dataset_version=%s',(staged['dataset_version'],)).fetchone()[0]==0
+        assert conn.execute('SELECT status FROM staging.movielens_imports WHERE id=%s',(staged['import_id'],)).fetchone()[0]=='loading'
+        publish_snapshot(conn,staged['import_id'],links)
+    with psycopg.connect(DSN) as conn:
+        assert publish_snapshot(conn,staged['import_id'],links)['already_published']
+
+
+def test_publication_rejects_changed_links_and_conflicting_notes(tmp_path):
+    from reco_ml.staging_import import stage_snapshot
+    from reco_ml.staging_publish import publish_snapshot
+    links=tmp_path/'links.csv'
+    original='movieId,imdbId,tmdbId\n9800,,9800\n'
+    links.write_text(original)
+    (tmp_path/'ratings.csv').write_text('userId,movieId,rating,timestamp\n42,9800,4,1\n42,9800,5,1\n')
+    with psycopg.connect(DSN) as conn:
+        staged=stage_snapshot(conn,tmp_path)
+    links.write_text(original+'9801,,9801\n')
+    with psycopg.connect(DSN) as conn:
+        with pytest.raises(ValueError,match='differs'):
+            publish_snapshot(conn,staged['import_id'],links)
+    links.write_text(original)
+    with psycopg.connect(DSN) as conn:
+        with pytest.raises(MappingConflict):
+            publish_snapshot(conn,staged['import_id'],links)
+        assert conn.execute('SELECT count(*) FROM public.movielens_ratings WHERE dataset_version=%s',(staged['dataset_version'],)).fetchone()[0]==0

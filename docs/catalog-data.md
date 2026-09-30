@@ -169,3 +169,28 @@ remain for inspection. A hard process kill or lost DB connection may leave a
 `loading` attempt requiring manual review. Failed attempts can be restarted from
 the beginning with a new UUID; exact-line resume is not implemented. No production
 ratings, accounts or catalogue films are changed by this command.
+
+### Validate and publish staging
+
+After loading and preparing the TMDB catalogue, run:
+
+```bash
+docker compose run --rm reco-job python -m jobs.publish_movielens \
+  --import-id <UUID-returned-by-staging> --links /datasets/validation-small/links.csv
+```
+
+Publication verifies the links checksum and staged row count, rejects conflicting
+notes, resolves source movie IDs, and counts missing/ambiguous mappings as rejected
+rows. It performs no TMDB requests. Identical duplicates count as accepted source
+rows but produce one published note. Zero resolved notes blocks publication.
+
+Replacing that snapshot's published ratings and setting `ready` occur in one
+transaction. Other snapshots and application ratings stay unchanged. Repeating
+publication of an already-ready attempt is a no-op. A validation failure leaves
+staging in `loading` for review, with no published changes. The transaction locks
+staged rows and catalogue writes for consistency; this first version serializes
+publication against staging writes. Run it in a maintenance window.
+
+This command provides atomic publication, but the old direct importer still
+exists and the recommender's readiness gate is a subsequent step. Do not infer
+that all legacy snapshots have been validated merely because their rows exist.
