@@ -1,4 +1,4 @@
-.PHONY: help up tools down reset migrate api frontend counts py-build py-smoke py-sync-movie py-stage py-publish py-eval py-reco test-frontend test-backend test-python test-python-docker
+.PHONY: help up tools down reset migrate api frontend counts py-build py-smoke py-sync-catalog py-sync-movie py-stage py-publish py-eval py-reco test-frontend test-backend test-python test-python-docker
 # Help
 
 .DEFAULT_GOAL := help
@@ -24,6 +24,7 @@ help:
 	@echo "Python jobs (Docker):"
 	@echo "  py-build         Build reco-job image"
 	@echo "  py-smoke         Inspect legacy MovieLens CSV files"
+	@echo "  py-sync-catalog  Load missing films from links.csv (DATA_DIR, CATALOG_LIMIT)"
 	@echo "  py-sync-movie    Create or refresh a film (TMDB_ID required)"
 	@echo "  py-stage         Load MovieLens staging (DATA_DIR, BATCH_SIZE)"
 	@echo "  py-publish       Validate and publish staging (IMPORT_ID required)"
@@ -86,6 +87,8 @@ frontend:
 # Reco ML jobs
 DATA_DIR ?= /datasets/raw_data
 BATCH_SIZE ?= 10000
+CATALOG_LIMIT ?= 100
+CATALOG_DELAY ?= 0.25
 
 # DATA_DIR is a path inside the job container.
 
@@ -94,6 +97,9 @@ py-build:
 
 py-smoke:
 	docker compose run --rm reco-job python -m jobs.smoke_data
+
+py-sync-catalog:
+	docker compose run --rm reco-job python -m jobs.sync_tmdb_catalog --links "$(DATA_DIR)/links.csv" --limit "$(CATALOG_LIMIT)" --delay "$(CATALOG_DELAY)"
 
 py-sync-movie:
 	@test -n "$(TMDB_ID)" || (echo "Usage: make py-sync-movie TMDB_ID=603"; exit 1)

@@ -25,16 +25,35 @@ par un échantillon : le moteur de recommandation charge encore le corpus en mé
 ### 2. Préparer le catalogue TMDB
 
 ```bash
+make py-sync-catalog DATA_DIR=/datasets/validation-small CATALOG_LIMIT=100 CATALOG_DELAY=0.25
+```
+
+La commande lit les `tmdbId` de `links.csv` et crée les films manquants dans
+`items` de notre DB. Chaque film est validé dans une transaction distincte, après la requête
+HTTP. Les films existants sont ignorés après vérification des identifiants.
+Relancer la même commande reprend donc le chargement sans récupérer à nouveau
+les films déjà enregistrés. Les métadonnées comprennent les chemins des affiches ;
+les images ne sont pas stockées dans PostgreSQL.
+
+`CATALOG_LIMIT` limite le nombre de films demandés à TMDB par exécution, y compris
+les réponses 404. Le client peut réessayer une requête en cas de panne temporaire.
+`CATALOG_DELAY` espace les demandes de films. Le bilan JSON compte les films chargés,
+existants et différés ; il liste les correspondances ambiguës, les IDs MovieLens
+sans TMDB et les IDs TMDB introuvables. Conserver ce bilan avec les fichiers source.
+
+Un conflit d'identité ou une erreur autre qu'un 404 arrête la commande avec un code
+non nul. Les films précédemment enregistrés restent disponibles pour la reprise.
+Les 404 ne sont pas mémorisés en base et seront retentés : augmenter la limite si
+ces réponses occupent tout le budget et empêchent d'atteindre les films suivants.
+Le bilan JSON est émis seulement à la fin d'une exécution réussie.
+
+Pour actualiser explicitement un film déjà présent, utiliser :
+
+```bash
 make py-sync-movie TMDB_ID=603
 ```
 
-Cette commande crée ou actualise un film dans `items`, en conservant son ID interne.
-Les métadonnées comprennent les chemins des affiches ; les images ne sont pas
-stockées dans PostgreSQL. Le frontend construit leurs URL à partir des métadonnées.
-
-Il faut préparer les films référencés par les `tmdbId` de `links.csv` avant de
-publier les notes. Le chargement automatique du catalogue depuis ce fichier reste
-à implémenter. La commande actuelle synchronise un seul film par exécution.
+Le chargement du catalogue ne modifie ni les notes ni le statut des imports.
 
 ### 3. Charger les notes en staging
 

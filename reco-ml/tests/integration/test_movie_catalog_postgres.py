@@ -242,3 +242,34 @@ def test_recommender_requires_publication_and_direct_import_cannot_modify_it(tmp
         assert any(user == -42 for user,_,_ in ratings)
         with pytest.raises(ValueError,match='already published'):
             import_snapshot(conn,tmp_path)
+
+
+def test_catalog_sync_resumes_after_outage_without_duplicate_movies():
+    import io
+    from unittest.mock import Mock
+    from urllib.error import HTTPError
+    from reco_ml.catalog_sync import sync_catalog
+
+    csv = 'movieId,imdbId,tmdbId\n990001,,990001\n990002,,990002\n'
+    client = Mock()
+    client.get_movie.side_effect = [
+        {'id': 990001, 'title': 'First'},
+        HTTPError('url', 503, 'unavailable', {}, None),
+    ]
+    with psycopg.connect(DSN, autocommit=True) as conn:
+        with pytest.raises(HTTPError):
+            sync_catalog(conn, io.StringIO(csv), client, delay=0)
+    with psycopg.connect(DSN, autocommit=True) as conn:
+        item_id = conn.execute('SELECT id FROM items WHERE tmdb_id=990001').fetchone()[0]
+        client.reset_mock()
+        client.get_movie.side_effect = None
+        client.get_movie.return_value = {'id': 990002, 'title': 'Second'}
+        report = sync_catalog(conn, io.StringIO(csv), client, delay=0)
+        assert report['existing'] == report['synced'] == 1
+        client.get_movie.assert_called_once_with(990002)
+        client.reset_mock()
+        report = sync_catalog(conn, io.StringIO(csv), client, delay=0)
+        assert report['existing'] == 2
+        client.get_movie.assert_not_called()
+        assert conn.execute('SELECT id FROM items WHERE tmdb_id=990001').fetchone()[0] == item_id
+        assert conn.execute('SELECT count(*) FROM items WHERE tmdb_id IN (990001,990002)').fetchone()[0] == 2
