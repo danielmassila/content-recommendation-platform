@@ -1,211 +1,129 @@
-# Catalog data strategy
+# Catalogue et import des données
 
-The application keeps a local catalog because ratings and recommendations require stable internal item identifiers.
-An external movie API cannot replace this relational core without making the recommendation pipeline dependent on
-network availability and third-party identifier semantics.
+TMDB fournit les informations des films. MovieLens fournit les notes historiques
+et les correspondances entre identifiants. Les comptes et notes de l'application
+restent dans `users` et `ratings` ; les utilisateurs MovieLens ne sont pas des comptes.
 
-MovieLens remains the reproducible seed dataset. TMDB is an optional enrichment provider for posters, descriptions,
-credits and public popularity signals. Provider payloads are normalized into `items.metadata`; the frontend never
-calls TMDB directly and the API key therefore stays server-side.
+## Parcours à utiliser
 
-## Data flow
+Appliquer les migrations avec `make migrate` et construire l'image avec
+`make py-build`. Configurer `TMDB_API_KEY` dans `.env` pour récupérer des films.
+Les commandes ci-dessous sont exécutées depuis la racine du projet.
 
-1. `make py-download` downloads the reproducible MovieLens source.
-2. `make py-import` creates stable local items and ratings.
-3. `make py-enrich-tmdb` enriches eligible movies in bounded batches.
-4. Spring exposes a paginated catalog independently of the enrichment provider.
+### 1. Préparer les fichiers
 
-The enrichment job retries HTTP 429 and 5xx responses with backoff, commits progress in configurable batches and
-records `tmdbEnrichedAt`. A failed enrichment leaves the core movie usable with its MovieLens metadata.
+Placer `links.csv` et `ratings.csv` d'une même distribution MovieLens dans un
+répertoire sous `datasets/`. Ce répertoire est monté en lecture seule dans le
+conteneur : `datasets/validation-small` devient `/datasets/validation-small`.
+Ne pas modifier ces fichiers pendant l'import. Leur empreinte SHA-256 identifie
+la version du corpus ; un changement de contenu produit une nouvelle version.
 
-## Explicit TMDB movie ingestion
+Le téléchargement de latest Full n'est pas encore intégré au parcours. Commencer
+par un échantillon : le moteur de recommandation charge encore le corpus en mémoire.
+`movies.csv`, les tags et les scores du genome ne sont pas utilisés dans ce parcours.
 
-After applying the source-identifier migrations (V7 and later), a single film can
-be created or refreshed independently of MovieLens:
-
-```bash
-docker compose run --rm reco-job python -m jobs.sync_tmdb_movie 603
-```
-
-This requires `TMDB_API_KEY` and a rebuilt job image (`docker compose build reco-job`)
-if its dependencies are not installed yet. The command always refreshes the requested
-film; automatic freshness-based selection is not implemented yet.
-
-The loader keeps the internal item ID, uses the unique movie `tmdb_id` index for
-concurrent upserts, and preserves existing MovieLens IDs and application ratings.
-An absent IMDb ID does not clear the existing one; a contradictory IMDb ID blocks
-the update. Provider metadata is refreshed while unrelated metadata keys are kept.
-Poster paths remain nullable and use the existing frontend metadata contract.
-
-Legacy rows with matching TMDB IDs only in JSON block ingestion until an audited
-backfill assigns their explicit identifiers. This command does not perform that
-backfill. The existing enrichment command remains on its legacy path for now.
-
-The PostgreSQL integration tests require `CATALOG_TEST_DSN` pointing to a fresh,
-disposable database: they apply repository migrations and insert test data.
-Never point this variable at the application's database.
-
-## Scaling boundary
-
-`TMDB_ENRICH_LIMIT`, `TMDB_ENRICH_BATCH_SIZE` and `TMDB_REQUEST_DELAY_SECONDS` bound each run. For horizontally scaled
-production workloads, move enrichment requests to a durable queue and use a distributed rate limiter before adding
-multiple workers.
-
-## Non-destructive MovieLens import
-
-After applying V8, import historical ratings into `movielens_ratings`:
+### 2. Préparer le catalogue TMDB
 
 ```bash
-docker compose run --rm reco-job python -m jobs.import_movielens
+make py-sync-movie TMDB_ID=603
 ```
 
-Add `--fetch-missing` to retrieve missing catalog films through TMDB (requires
-`TMDB_API_KEY`). Without that option, missing films are reported for a later run.
-Existing catalog films are not fetched again. Source files default to
-`/datasets/raw_data`; `--data-dir` can select another snapshot directory.
+Cette commande crée ou actualise un film dans `items`, en conservant son ID interne.
+Les métadonnées comprennent les chemins des affiches ; les images ne sont pas
+stockées dans PostgreSQL. Le frontend construit leurs URL à partir des métadonnées.
 
-The command hashes and parses the same bytes from `links.csv` and `ratings.csv`.
-Its JSON output includes the dataset version, per-file SHA-256, inserted/existing
-counts, rejected-rating counts and unresolved MovieLens IDs. Preserve this output
-with the input files as the import manifest. Exact duplicate input ratings are
-collapsed before the reported `ratings_read` count; contradictory duplicates and
-invalid rows fail validation. A changed file produces a different dataset version.
-Future recommendation reads must explicitly select one snapshot.
+Il faut préparer les films référencés par les `tmdbId` de `links.csv` avant de
+publier les notes. Le chargement automatique du catalogue depuis ce fichier reste
+à implémenter. La commande actuelle synchronise un seul film par exécution.
 
-The complete import commits together, including new films and mappings. A 404 is
-reported as unresolved; temporary API failures and identity conflicts roll back
-the operation. Replaying the same files can resolve previously missing films
-without duplicating already imported ratings or changing their ingestion date.
-MovieLens event timestamps are preserved in UTC. No application users are created,
-and application ratings and recommendations are not rewritten.
-
-This first implementation loads the snapshot into memory and writes ratings one
-at a time. It targets the small dataset; batching and shorter transactions for
-large datasets remain future work. It does not parse tags or change the recommender.
-Legacy JSON-only film identities still require the separate audited backfill.
-
-**The old `jobs.import_dataset` / `make py-import` command remains the destructive
-legacy demo loader.** Use `jobs.import_movielens` for the new path. Demo-loader
-retirement and existing synthetic-user cleanup are separate migration steps.
-
-### Ambiguous MovieLens correspondences
-
-The importer excludes every MovieLens ID involved in contradictory links or a
-shared TMDB ID. It never chooses the first row or merges films automatically.
-The JSON report lists these IDs under `rejected_links` and counts their ratings
-under `ambiguous_link`. Valid films continue through the normal import path.
-Malformed CSV rows and conflicts with existing catalog identities still fail.
-The standalone `parse_links` function remains strict unless a rejection report
-is explicitly supplied. Memory usage and per-rating SQL writes remain to be
-improved before loading a large dataset.
-
-## Recommendations with external neighbors
-
-The recommendation CLI accepts `--dataset-version <exact-sha256-version>` to
-combine that MovieLens snapshot with application ratings. Positive computation
-IDs represent application users; negative IDs represent MovieLens neighbors.
-This reversible encoding never changes persisted user IDs. Results are written
-only for application users, and popularity statistics use the selected combined
-corpus. Unknown or empty snapshots fail before recommendations are rewritten.
-
-Without the flag, the existing application-only behavior remains. For jobs
-triggered by Spring, set `APP_RECOMMENDATIONS_DATASET_VERSION` to the exact
-`dataset_version` returned by the import. Blank values omit the CLI argument.
-Restart the local backend (`make api`) after changing `.env`; for a containerized
-backend recreate it with `docker compose up -d --build backend`. The variable is
-passed for both targeted and global recalculations. No snapshot is chosen
-implicitly, and an unknown snapshot fails the Python job. Offline evaluation
-of the external corpus remains separate follow-up work.
-
-This setting configures the command only: the existing process launcher still
-requires Docker CLI/Compose, access to the Docker engine and the Compose file.
-It does not provision those capabilities in the backend container.
-
-The next dataset will be **MovieLens latest Full (`ml-latest.zip`)**. The
-[official README](https://files.grouplens.org/datasets/movielens/ml-latest-README.html)
-describes 33,832,162 ratings, 2,328,315 tag applications and 86,537 movies,
-generated July 20, 2023. Keep an archive checksum since `latest` can change.
-Tags and genome scores are not consumed yet. Neither the importer nor the
-in-memory user-neighbor engine is ready for the full volume: streaming imports,
-batched writes and bounded recommendation computations must precede loading it.
-
-## Staging and published data
-
-V9 introduces a separate `staging` schema in the same PostgreSQL database.
-Here, "production" means validated data consumed by the application, not a
-separate production deployment. Existing `public.items`, `public.ratings` and
-`public.movielens_ratings` retain their names and contracts.
-
-- `staging.movielens_imports` identifies each attempt by UUID and records its
-  snapshot, source hashes, counters, status and timestamps. Failed attempts can
-  be retried under a new UUID; concurrent loading attempts for one snapshot are
-  blocked by a unique index.
-- `staging.movielens_ratings` stores typed source rows before movie-ID resolution.
-  Rows reference source line numbers, allowing contradictory duplicate ratings
-  to be detected before publication rather than silently overwritten.
-- Removing an attempt removes its staging rows, never published ratings.
-
-This is the schema-only preparatory step. The existing importer still writes
-published ratings in one transaction, and existing snapshots are not retroactively
-marked ready. Subsequent steps will implement streaming/COPY loading, validation,
-atomic publication and a published-snapshot readiness check in the recommender.
-The new status field alone does not authorize or perform publication. Staging
-separation is logical; separate database roles/permissions are not introduced yet.
-
-### Batched staging loader (V10)
-
-`python -m jobs.stage_movielens --data-dir /datasets/validation-small --batch-size 10000`
-loads only staging. The loader copies and hashes source files into a temporary
-local directory, streams ratings, and commits each COPY batch together with its
-progress counter. Temporary disk space roughly equal to the two CSV files is
-required; rating memory is bounded by batch size. Source files must remain stable
-while the initial copy is made. Keep original files for subsequent mapping checks.
-
-`staged_at` records completed loading, but status stays `loading` until validation
-and publication are implemented. Accepted/rejected counts are reserved for that
-validation. Duplicate source rows remain in staging. On a caught failure, the
-current batch rolls back and the attempt becomes `failed`; committed staging rows
-remain for inspection. A hard process kill or lost DB connection may leave a
-`loading` attempt requiring manual review. Failed attempts can be restarted from
-the beginning with a new UUID; exact-line resume is not implemented. No production
-ratings, accounts or catalogue films are changed by this command.
-
-### Validate and publish staging
-
-After loading and preparing the TMDB catalogue, run:
+### 3. Charger les notes en staging
 
 ```bash
-docker compose run --rm reco-job python -m jobs.publish_movielens \
-  --import-id <UUID-returned-by-staging> --links /datasets/validation-small/links.csv
+make py-stage DATA_DIR=/datasets/validation-small BATCH_SIZE=10000
 ```
 
-Publication verifies the links checksum and staged row count, rejects conflicting
-notes, resolves source movie IDs, and counts missing/ambiguous mappings as rejected
-rows. It performs no TMDB requests. Identical duplicates count as accepted source
-rows but produce one published note. Zero resolved notes blocks publication.
+Conserver le JSON retourné, notamment `import_id` et `dataset_version`.
+Le traitement copie et hache les fichiers dans un répertoire temporaire, lit les
+notes progressivement et valide chaque lot avec sa progression. Prévoir autant
+d'espace temporaire que la taille de `links.csv` et `ratings.csv` réunis.
 
-Replacing that snapshot's published ratings and setting `ready` occur in one
-transaction. Other snapshots and application ratings stay unchanged. Repeating
-publication of an already-ready attempt is a no-op. A validation failure leaves
-staging in `loading` for review, with no published changes. The transaction locks
-staged rows and catalogue writes for consistency; this first version serializes
-publication against staging writes. Run it in a maintenance window.
+`staging.movielens_ratings` contient les lignes source typées ;
+`staging.movielens_imports` suit la tentative. Le champ `staged_at` signale la fin
+du chargement. Le statut reste `loading` jusqu'à publication.
+Une erreur interceptée marque la tentative `failed`. Une interruption brutale peut
+laisser une tentative `loading` à examiner manuellement. Une nouvelle tentative
+recommence depuis le début ; la reprise à la dernière ligne n'est pas implémentée.
 
-This command provides atomic publication, but the old direct importer still
-exists and the recommender's readiness gate is a subsequent step. Do not infer
-that all legacy snapshots have been validated merely because their rows exist.
+### 4. Valider et publier
 
-### Recommender publication gate
+```bash
+make py-publish IMPORT_ID=<uuid-retourne> DATA_DIR=/datasets/validation-small
+```
 
-A configured snapshot must have a `ready` attempt in
-`staging.movielens_imports` before its ratings can be used. Unpublished legacy
-snapshots must pass through staging and publication first; their existing rows
-alone do not authorize computation. Missing/unready snapshots fail before any
-recommendations are rewritten. Application-only mode (no snapshot configured)
-remains available. The legacy direct importer now refuses to modify a published
-snapshot, using the same transaction lock as publication.
+Le traitement vérifie le fichier de correspondances, le nombre de lignes et les
+notes contradictoires. Il résout `movieId → tmdbId → items.id`, sans appel réseau.
+Les correspondances manquantes ou ambiguës sont comptées comme rejets. Les doublons
+identiques sont regroupés ; aucune note résolue signifie un échec de publication.
 
-Validation sequence: apply migrations through V10, stage the small sample,
-publish using its returned import UUID and matching links file, configure the
-returned dataset version in the backend, then trigger recalculation. Loading and
-publication do not change the checksum-based dataset version for identical files.
+Les notes acceptées sont écrites dans `public.movielens_ratings` et l'import devient
+`ready` dans la même transaction. Les comptes et notes applicatifs ne changent pas.
+Relancer une tentative déjà publiée ne modifie rien. Une validation échouée laisse
+la tentative disponible pour correction ; elle ne publie aucune modification.
+
+Cette étape verrouille les écritures du catalogue et du staging pendant la
+transaction. La lancer hors des autres chargements. Conserver son bilan JSON :
+les motifs détaillés de rejet ne sont pas encore persistés en base.
+
+### 5. Calculer et consulter les recommandations
+
+```bash
+make py-reco DATASET_VERSION=sha256:<empreinte-retournee>
+```
+
+Le moteur utilise uniquement une version publiée et combine ses notes avec celles
+de l'application. Il écrit les résultats dans `recommendations` pour les comptes
+applicatifs uniquement. Créer un compte dans l'application pour avoir un destinataire.
+
+Pour les recalculs déclenchés depuis l'application, définir dans `.env` :
+
+```dotenv
+APP_RECOMMENDATIONS_DATASET_VERSION=sha256:<empreinte-retournee>
+```
+
+Redémarrer `make api` après ce changement. Le backend lance actuellement Docker
+Compose : il doit disposer du CLI, de l'accès au moteur Docker et du fichier Compose.
+Ces capacités ne sont pas fournies par l'image backend actuelle.
+Une configuration vide utilise seulement les notes applicatives ; la commande
+`make py-reco` exige volontairement une version explicite pour le parcours MovieLens.
+
+## Limites actuelles
+
+- Le registre `ready` est encore dans le staging : ne pas supprimer une tentative
+  publiée, même si ses notes finales sont conservées.
+- Une publication peut accepter une faible proportion des notes. Les seuils de
+  couverture et la politique de republication restent à définir.
+- Le calcul charge le corpus en mémoire, même pour un seul utilisateur. Full doit
+  attendre des mesures et une adaptation du moteur.
+- `make py-eval` évalue les notes applicatives, pas encore le corpus externe.
+
+## Anciens outils
+
+Les raccourcis `py-import`, `py-enrich-tmdb`, `py-download`, `py-all` et `demo-data`
+ont été retirés du Makefile. Leurs scripts restent disponibles pour référence,
+mais ne font pas partie du parcours décrit ici :
+
+- `jobs.import_dataset` vide les tables et crée des comptes synthétiques.
+- `jobs.import_movielens` charge directement sans passer par staging ; il ne rend
+  pas une version utilisable par le moteur et refuse de modifier une version publiée.
+- `jobs.enrich_tmdb` utilise l'ancien parcours de métadonnées.
+- `jobs.download_dataset` cible latest-small ; il ne vérifie pas un téléchargement
+  partiel et ne peut pas écrire dans le montage de datasets en lecture seule.
+
+`make reset` reste une commande explicite de suppression des volumes Docker.
+
+## Vérifications
+
+Les tests PostgreSQL utilisent `CATALOG_TEST_DSN` vers une base jetable distincte
+et y appliquent les migrations. Ne jamais utiliser la base de l'application pour
+ces tests. Le parcours applicatif se vérifie avec un petit échantillon publié :
+créer un compte, noter un film, recalculer et consulter les recommandations.

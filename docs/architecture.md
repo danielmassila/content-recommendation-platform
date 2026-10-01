@@ -102,7 +102,7 @@ Environment variables:
 
 - POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD for the database container
 - DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD inside the Python jobs
-- TMDB_API_KEY for optional metadata enrichment
+- TMDB_API_KEY for catalogue ingestion
 
 Flyway handles database migrations.
 
@@ -121,3 +121,9 @@ This Compose file is a development environment, not a production deployment defi
 - Full batch recomputation
 - User-user similarity computed on the fly
 - Database coupling between services
+
+## Current data ingestion
+
+The supported ingestion commands and staging/publication lifecycle are documented
+in [the data pipeline guide](catalog-data.md). MovieLens users and ratings are
+separate from application accounts and ratings. TMDB populates the catalogue.

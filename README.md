@@ -15,7 +15,7 @@ Next step : deploying this app and get it to production level !
 - Searches and filters a paginated movie catalogue.
 - Records ratings and exposes recent rating history.
 - Produces personalized recommendations with a hybrid algorithm.
-- Enriches MovieLens records with optional TMDB metadata.
+- Builds a TMDB catalogue and imports MovieLens ratings separately from application accounts.
 
 ## Architecture
 
@@ -25,7 +25,10 @@ flowchart LR
     API --> DB[(PostgreSQL)]
     API -->|bounded job| JOB[Python recommender]
     JOB --> DB
-    TMDB[TMDB API] -->|optional enrichment| JOB
+    TMDB[TMDB API] --> PIPE[Python data pipeline]
+    ML[MovieLens CSV files] --> PIPE
+    PIPE --> DB
+    DB --> JOB
 ```
 
 The recommendation strategy blends a Bayesian popularity baseline with user-based collaborative filtering. The blend
@@ -47,7 +50,7 @@ an unverified product claim.
 - Docker with Docker Compose
 - Node.js 22 or newer
 - GNU Make
-- A TMDB API key only if poster and metadata enrichment is required
+- A TMDB API key to populate the movie catalogue
 
 ## Run locally
 
@@ -59,11 +62,18 @@ cd content-recommendation-platform
 cp .env.example .env
 ```
 
-Prepare PostgreSQL and the MovieLens demonstration dataset:
+Prepare PostgreSQL and apply the schema migrations:
 
 ```bash
-make demo-data
+docker compose up -d db
+make migrate
+make py-build
 ```
+
+Populate the catalogue and publish MovieLens ratings using the
+[data pipeline guide](docs/catalog-data.md). These steps do not reset the database.
+Set `APP_RECOMMENDATIONS_DATASET_VERSION` in `.env` to the published version before
+starting the backend.
 
 Then start the two application processes in separate terminals:
 
@@ -81,12 +91,9 @@ Open:
 - API: http://localhost:8081
 - Adminer: http://localhost:8082
 
-The first dataset preparation downloads MovieLens and can take a few minutes. TMDB enrichment is optional:
-
-```bash
-# Set TMDB_API_KEY in .env first
-make py-enrich-tmdb
-```
+Local recalculation requires the backend to have access to Docker CLI, Compose and
+the project Compose file. The current backend container does not provide this setup;
+use `make api` for this local workflow.
 
 ## Tests
 
