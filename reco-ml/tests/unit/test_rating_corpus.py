@@ -10,6 +10,7 @@ def test_identities_and_snapshot_are_explicit(monkeypatch):
     monkeypatch.setattr('reco_ml.rating_corpus.repositories.fetch_all_ratings', lambda conn: [(1, 10, 4.0)])
     conn = MagicMock()
     cursor = conn.cursor.return_value.__enter__.return_value
+    cursor.fetchone.return_value = (True,)
     cursor.fetchall.return_value = [(1, 20, 5), (2, 10, 2)]
     ratings, stats, mean = load_corpus(conn, 'chosen-snapshot')
     assert ratings == [(1, 10, 4.0), (-1, 20, 5.0), (-2, 10, 2.0)]
@@ -21,7 +22,7 @@ def test_identities_and_snapshot_are_explicit(monkeypatch):
 def test_unknown_snapshot_fails(monkeypatch):
     monkeypatch.setattr('reco_ml.rating_corpus.repositories.fetch_all_ratings', lambda conn: [])
     conn = MagicMock()
-    conn.cursor.return_value.__enter__.return_value.fetchall.return_value = []
+    conn.cursor.return_value.__enter__.return_value.fetchone.return_value = (False,)
     with pytest.raises(ValueError, match='snapshot'):
         load_corpus(conn, 'unknown')
 
@@ -39,3 +40,13 @@ def test_external_neighbors_are_not_recommendation_recipients(monkeypatch):
     assert captured
     assert {row.user_id for row in captured} <= {1,2}
     assert all(row.item_id != 10 for row in captured if row.user_id == 1)
+
+
+def test_unpublished_snapshot_is_rejected_before_reading_ratings(monkeypatch):
+    read = MagicMock()
+    monkeypatch.setattr('reco_ml.rating_corpus.repositories.fetch_all_ratings', read)
+    conn = MagicMock()
+    conn.cursor.return_value.__enter__.return_value.fetchone.return_value = (False,)
+    with pytest.raises(ValueError, match='not published'):
+        load_corpus(conn, 'incomplete')
+    read.assert_not_called()

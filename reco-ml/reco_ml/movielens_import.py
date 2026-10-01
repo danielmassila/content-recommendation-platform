@@ -75,6 +75,10 @@ def import_snapshot(conn, directory: Path, client=None):
     """
     rejected_links = {}
     version, hashes, links, ratings = read_snapshot(directory, rejected_links=rejected_links)
+    # Do not allow the legacy direct path to mutate a validated snapshot.
+    conn.execute('SELECT pg_advisory_xact_lock(hashtextextended(%s,0))', (version,))
+    if conn.execute("SELECT 1 FROM staging.movielens_imports WHERE dataset_version=%s AND status='ready'", (version,)).fetchone():
+        raise ValueError('Snapshot already published; use the staging publication workflow')
     catalog = [CatalogMovie(*row) for row in conn.execute(
         "SELECT id, tmdb_id, movielens_id, imdb_id FROM items WHERE type='MOVIE' AND tmdb_id IS NOT NULL"
     ).fetchall()]

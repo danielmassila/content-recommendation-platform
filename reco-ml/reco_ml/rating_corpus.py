@@ -12,6 +12,10 @@ def load_corpus(conn, dataset_version):
     Requires positive source IDs, as enforced for MovieLens by V8.
     Currently loads the corpus in memory; not intended for the full dataset yet.
     """
+    with conn.cursor() as cur:
+        cur.execute("SELECT EXISTS (SELECT 1 FROM staging.movielens_imports WHERE dataset_version=%s AND status='ready')", (dataset_version,))
+        if not cur.fetchone()[0]:
+            raise ValueError('Selected MovieLens snapshot is not published (ready)')
     app = repositories.fetch_all_ratings(conn)
     if any(user <= 0 for user, _, _ in app):
         raise ValueError('Application user IDs must be positive')

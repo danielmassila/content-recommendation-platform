@@ -194,3 +194,18 @@ publication against staging writes. Run it in a maintenance window.
 This command provides atomic publication, but the old direct importer still
 exists and the recommender's readiness gate is a subsequent step. Do not infer
 that all legacy snapshots have been validated merely because their rows exist.
+
+### Recommender publication gate
+
+A configured snapshot must have a `ready` attempt in
+`staging.movielens_imports` before its ratings can be used. Unpublished legacy
+snapshots must pass through staging and publication first; their existing rows
+alone do not authorize computation. Missing/unready snapshots fail before any
+recommendations are rewritten. Application-only mode (no snapshot configured)
+remains available. The legacy direct importer now refuses to modify a published
+snapshot, using the same transaction lock as publication.
+
+Validation sequence: apply migrations through V10, stage the small sample,
+publish using its returned import UUID and matching links file, configure the
+returned dataset version in the backend, then trigger recalculation. Loading and
+publication do not change the checksum-based dataset version for identical files.

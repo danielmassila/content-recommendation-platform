@@ -220,3 +220,25 @@ def test_publication_rejects_changed_links_and_conflicting_notes(tmp_path):
         with pytest.raises(MappingConflict):
             publish_snapshot(conn,staged['import_id'],links)
         assert conn.execute('SELECT count(*) FROM public.movielens_ratings WHERE dataset_version=%s',(staged['dataset_version'],)).fetchone()[0]==0
+
+
+def test_recommender_requires_publication_and_direct_import_cannot_modify_it(tmp_path):
+    from reco_ml.staging_import import stage_snapshot
+    from reco_ml.staging_publish import publish_snapshot
+    from reco_ml.rating_corpus import load_corpus
+    from reco_ml.movielens_import import import_snapshot
+    (tmp_path/'links.csv').write_text('movieId,imdbId,tmdbId\n9900,,9900\n')
+    (tmp_path/'ratings.csv').write_text('userId,movieId,rating,timestamp\n42,9900,4,1\n')
+    with psycopg.connect(DSN) as conn:
+        upsert_tmdb_movie(conn,payload(9900))
+    with psycopg.connect(DSN) as conn:
+        staged=stage_snapshot(conn,tmp_path)
+    with psycopg.connect(DSN) as conn:
+        with pytest.raises(ValueError,match='not published'):
+            load_corpus(conn,staged['dataset_version'])
+        publish_snapshot(conn,staged['import_id'],tmp_path/'links.csv')
+    with psycopg.connect(DSN) as conn:
+        ratings,_,_=load_corpus(conn,staged['dataset_version'])
+        assert any(user == -42 for user,_,_ in ratings)
+        with pytest.raises(ValueError,match='already published'):
+            import_snapshot(conn,tmp_path)
