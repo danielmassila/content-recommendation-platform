@@ -784,7 +784,7 @@ button.movie-card:focus-visible {
 .movie-modal__dialog {
   position: relative;
   display: grid;
-  grid-template-rows: minmax(220px, min(42svh, 420px)) auto;
+  grid-template-rows: minmax(220px, min(42svh, 420px)) minmax(0, auto);
   width: min(100%, 780px);
   height: auto;
   max-height: calc(100svh - 32px);
@@ -796,7 +796,7 @@ button.movie-card:focus-visible {
 }
 
 .movie-modal__dialog--no-visual {
-  grid-template-rows: auto;
+  grid-template-rows: minmax(0, auto);
   height: auto;
   max-height: calc(100svh - 32px);
 }
@@ -869,7 +869,8 @@ button.movie-card:focus-visible {
   display: grid;
   gap: 12px;
   align-content: start;
-  overflow: visible;
+  min-height: 0;
+  overflow-y: auto;
   padding: clamp(16px, 3vw, 24px);
 }
 
@@ -884,17 +885,9 @@ button.movie-card:focus-visible {
 }
 
 .movie-modal__content p {
-  display: -webkit-box;
-  overflow: hidden;
   max-width: 720px;
   color: var(--text-muted);
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
   line-height: 1.5;
-}
-
-.movie-modal__rating p {
-  -webkit-line-clamp: 2;
 }
 
 .movie-modal__rating .form-error {
