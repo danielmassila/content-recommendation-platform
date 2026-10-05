@@ -14,8 +14,10 @@ def main():
     parser.add_argument('--data-dir', type=Path, required=True)
     parser.add_argument('--batch-size', type=int, default=10000)
     args = parser.parse_args()
+    # Staging owns batch commits so use a dedicated connection.
     with psycopg.connect(db_dsn()) as conn:
-        print(json.dumps(stage_snapshot(conn, args.data_dir, args.batch_size), indent=2))
+        report = stage_snapshot(conn, args.data_dir, args.batch_size)
+    print(json.dumps(report, indent=2))
 
 
 if __name__ == '__main__':
