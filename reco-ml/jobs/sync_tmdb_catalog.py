@@ -22,6 +22,7 @@ def main():
     try:
         client = TmdbClient(get_env('TMDB_API_KEY'))
         with args.links.open(encoding='utf-8-sig', newline='') as source:
+            # The synchronizer opens a short transaction for each film.
             with psycopg.connect(db_dsn(), autocommit=True) as conn:
                 report = sync_catalog(conn, source, client, limit=args.limit, delay=args.delay)
     except Exception as error:

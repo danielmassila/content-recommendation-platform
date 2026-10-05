@@ -3,6 +3,7 @@
 import re
 from datetime import datetime, timezone
 
+from psycopg import Connection
 from psycopg.types.json import Jsonb
 
 from reco_ml.movie_mapping import MappingConflict
@@ -64,3 +65,30 @@ def upsert_tmdb_movie(conn, payload: dict) -> int:
         if row is None:
             raise MappingConflict("Catalog and TMDB disagree on IMDb identity")
         return row[0]
+
+
+def find_movie_identities(
+    conn: Connection, *, tmdb_id: int | None, movielens_id: int
+) -> list[tuple[int | None, int | None, str | None]]:
+    """Read all matching identities; the caller decides whether they agree.
+
+    Match either source ID so conflicting mappings remain visible. This helper
+    neither commits nor selects a preferred row when several movies match.
+    """
+    return conn.execute(
+        """
+        SELECT tmdb_id, movielens_id, imdb_id
+        FROM items
+        WHERE type = 'MOVIE' AND (tmdb_id = %s OR movielens_id = %s)
+        """,
+        (tmdb_id, movielens_id),
+    ).fetchall()
+
+
+def fetch_catalog_movies(conn):
+    """Read explicit movie identities used to resolve MovieLens links."""
+    from reco_ml.movie_mapping import CatalogMovie
+
+    return [CatalogMovie(*row) for row in conn.execute(
+        "SELECT id,tmdb_id,movielens_id,imdb_id FROM items WHERE type='MOVIE' AND tmdb_id IS NOT NULL"
+    )]
