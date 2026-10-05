@@ -6,88 +6,136 @@ import math
 from datetime import datetime, timezone
 
 from pathlib import Path
+from uuid import UUID
 
-from reco_ml.movie_mapping import CatalogMovie, MappingConflict, MovieResolver, ResolutionStatus, parse_links
+from psycopg import Connection
+
+from reco_ml import ingestion_repository as store
+from reco_ml.ingestion_repository import StagedImport
+from reco_ml.movie_catalog import fetch_catalog_movies
+
+from reco_ml.movie_mapping import MappingConflict, MovieResolver, ResolutionStatus, parse_links
 
 
-def publish_snapshot(conn, import_id, links_path: Path, *, min_coverage=0.95):
-    """Caller owns commit/rollback. No HTTP calls and no partial publication.
+def publish_snapshot(
+    conn: Connection, import_id: UUID, links_path: Path, *, min_coverage: float = 0.95
+) -> dict:
+    """Validate, resolve and publish an import in the caller's transaction.
 
-    Missing/ambiguous mappings are rejected and counted. Conflicting notes fail
-    the entire publication. Coverage refusals return a blocked report: callers
-    should print it and report failure to the user. No report is stored in DB.
-    Structural validation errors raise and leave staging available for review.
+    A blocked report performs no final writes. Exceptions require rollback.
+    The caller commits accepted ratings and readiness together.
     """
     if not math.isfinite(min_coverage) or not 0 <= min_coverage <= 1:
         raise ValueError('min_coverage must be finite and between 0 and 1')
-    conn.execute("SET LOCAL lock_timeout = '5s'")
-    row = conn.execute('''SELECT dataset_version,status,source_hashes,rows_read,staged_at
-        FROM staging.movielens_imports WHERE id=%s FOR UPDATE''',(import_id,)).fetchone()
-    if row is None:
-        raise ValueError('Unknown import')
-    version, status, hashes, expected, staged_at = row
-    if status == 'ready':
-        return {'import_id': str(import_id), 'dataset_version': version, 'already_published': True}
-    if status != 'loading' or staged_at is None:
+
+    attempt = store.load_locked_import(conn, import_id)
+    if attempt.status == 'ready':
+        return {
+            'import_id': str(import_id),
+            'dataset_version': attempt.dataset_version,
+            'already_published': True,
+        }
+
+    _require_publishable_import(conn, attempt)
+    links, rejected_links = _read_matching_links(
+        links_path, attempt.source_hashes.get('links.csv')
+    )
+
+    # Keep both sides of the mapping stable until publication commits or rolls back.
+    store.lock_publication_sources(conn)
+    source_rows = _validate_staged_ratings(conn, import_id, attempt.rows_read)
+    _build_publication_mapping(conn, import_id, links, rejected_links)
+
+    report = _coverage_report(
+        import_id, attempt.dataset_version, source_rows,
+        store.count_rejections(conn, import_id), min_coverage,
+    )
+    if report.get('status') == 'blocked':
+        return report
+
+    # These writes share one transaction: readers must never see a partial publication.
+    published = store.replace_published_ratings(conn, import_id, attempt.dataset_version)
+    store.mark_import_ready(
+        conn, import_id, report['accepted_source_rows'], sum(report['rejected_ratings'].values())
+    )
+    report.update(
+        published=published,
+        duplicate_rows=report['accepted_source_rows'] - published,
+        status='ready',
+    )
+    return report
+
+
+def _require_publishable_import(conn: Connection, attempt: StagedImport) -> None:
+    """Require completed staging and serialize attempts for the same dataset."""
+    if attempt.status != 'loading' or attempt.staged_at is None:
         raise ValueError('Import has not completed staging')
-    # Serialize publications for a snapshot, including attempts with different UUIDs.
-    conn.execute('SELECT pg_advisory_xact_lock(hashtextextended(%s,0))',(version,))
-    if conn.execute("SELECT 1 FROM staging.movielens_imports WHERE dataset_version=%s AND status='ready'",(version,)).fetchone():
+    store.lock_dataset(conn, attempt.dataset_version)
+    published_attempt = store.is_dataset_published(conn, attempt.dataset_version)
+    if published_attempt:
         raise ValueError('Snapshot already published by another attempt')
+
+
+def _coverage_report(
+    import_id: UUID, dataset_version: str, source_rows: int,
+    rejected_ratings: dict[str, int], min_coverage: float,
+) -> dict:
+    """Apply the acceptance rule to source rows, including identical duplicates."""
+    accepted_rows = source_rows - sum(rejected_ratings.values())
+    coverage = accepted_rows / source_rows
+    report = {
+        'import_id': str(import_id),
+        'dataset_version': dataset_version,
+        'validated_at': datetime.now(timezone.utc).isoformat(),
+        'source_rows': source_rows,
+        'accepted_source_rows': accepted_rows,
+        'coverage': coverage,
+        'min_coverage': min_coverage,
+        'rejected_ratings': rejected_ratings,
+    }
+    if accepted_rows == 0:
+        report.update(status='blocked', reason='no_resolved_ratings')
+    elif coverage < min_coverage:
+        report.update(status='blocked', reason='insufficient_coverage')
+    return report
+
+
+def _read_matching_links(links_path: Path, expected_hash: str | None):
+    """Reject changed sources before resolving any movie identities."""
     data = links_path.read_bytes()
-    if hashlib.sha256(data).hexdigest() != hashes.get('links.csv'):
+    if hashlib.sha256(data).hexdigest() != expected_hash:
         raise ValueError('links.csv differs from the staged snapshot')
     rejected = {}
     links = parse_links(io.StringIO(data.decode('utf-8-sig')), rejected=rejected)
-    # Keep source rows and catalogue mappings stable throughout validation/publication.
-    conn.execute('LOCK TABLE staging.movielens_ratings IN SHARE MODE')
-    conn.execute('LOCK TABLE items IN SHARE MODE')
-    count = conn.execute('SELECT count(*) FROM staging.movielens_ratings WHERE import_id=%s',(import_id,)).fetchone()[0]
-    if count != expected or count == 0:
+    return links, rejected
+
+
+def _validate_staged_ratings(conn: Connection, import_id: UUID, expected_rows: int) -> int:
+    """Require a complete, non-empty import without conflicting user/movie notes."""
+    count = store.count_staged_ratings(conn, import_id)
+    if count != expected_rows or count == 0:
         raise ValueError('Staging is empty or row count differs from progress')
-    conflict = conn.execute('''SELECT movielens_user_id,movielens_movie_id
-        FROM staging.movielens_ratings WHERE import_id=%s
-        GROUP BY movielens_user_id,movielens_movie_id
-        HAVING count(DISTINCT (rating,rated_at)) > 1 LIMIT 1''',(import_id,)).fetchone()
+    conflict = store.find_conflicting_rating(conn, import_id)
     if conflict:
         raise MappingConflict(f'Conflicting staged ratings for user/movie {conflict}')
-    catalog = [CatalogMovie(*row) for row in conn.execute("SELECT id,tmdb_id,movielens_id,imdb_id FROM items WHERE type='MOVIE' AND tmdb_id IS NOT NULL")]
-    resolver = MovieResolver(links,catalog)
-    conn.execute('CREATE TEMP TABLE publication_mapping(movie_id BIGINT PRIMARY KEY,item_id BIGINT,reason TEXT) ON COMMIT DROP')
-    movies = conn.execute('SELECT DISTINCT movielens_movie_id FROM staging.movielens_ratings WHERE import_id=%s',(import_id,)).fetchall()
-    with conn.cursor() as cur:
-        with cur.copy('COPY publication_mapping FROM STDIN') as copy:
-            for (movie_id,) in movies:
-                if movie_id in rejected:
-                    copy.write_row((movie_id,None,rejected[movie_id]))
-                    continue
-                result = resolver.resolve(movie_id)
-                copy.write_row((movie_id,result.item_id,None if result.status == ResolutionStatus.RESOLVED else result.status.value))
-    rejection_counts = dict(conn.execute('''SELECT m.reason,count(*) FROM staging.movielens_ratings s
-        JOIN publication_mapping m ON m.movie_id=s.movielens_movie_id
-        WHERE s.import_id=%s AND m.item_id IS NULL GROUP BY m.reason''',(import_id,)).fetchall())
-    accepted = count - sum(rejection_counts.values())
-    report = {
-        'import_id': str(import_id), 'dataset_version': version,
-        'validated_at': datetime.now(timezone.utc).isoformat(),
-        'source_rows': count, 'accepted_source_rows': accepted,
-        'coverage': accepted / count, 'min_coverage': min_coverage,
-        'rejected_ratings': rejection_counts,
-    }
-    if accepted == 0 or accepted / count < min_coverage:
-        report.update(status='blocked', reason='no_resolved_ratings' if accepted == 0 else 'insufficient_coverage')
-        return report
+    return count
 
-    # Replace only this snapshot; other snapshots and application tables are untouched.
-    conn.execute('DELETE FROM public.movielens_ratings WHERE dataset_version=%s',(version,))
-    result = conn.execute('''INSERT INTO public.movielens_ratings
-        (dataset_version,movielens_user_id,item_id,rating,rated_at)
-        SELECT DISTINCT %s,s.movielens_user_id,m.item_id,s.rating,s.rated_at
-        FROM staging.movielens_ratings s JOIN publication_mapping m ON m.movie_id=s.movielens_movie_id
-        WHERE s.import_id=%s AND m.item_id IS NOT NULL''',(version,import_id))
-    published = result.rowcount
-    report.update(published=published, duplicate_rows=accepted-published, status='ready')
-    conn.execute("""UPDATE staging.movielens_imports SET status='ready',finished_at=now(),
-        rows_accepted=%s,rows_rejected=%s WHERE id=%s""",
-        (accepted,count-accepted,import_id))
-    return report
+
+def _build_publication_mapping(conn, import_id, links, rejected) -> None:
+    """Resolve each distinct source movie once; SQL will join all its ratings.
+
+    The temporary mapping disappears when the caller commits or rolls back.
+    """
+    resolver = MovieResolver(links, fetch_catalog_movies(conn))
+    movies = store.fetch_staged_movie_ids(conn, import_id)
+
+    def mapping_rows():
+        for movie_id in movies:
+            if movie_id in rejected:
+                yield movie_id, None, rejected[movie_id]
+                continue
+            result = resolver.resolve(movie_id)
+            reason = None if result.status == ResolutionStatus.RESOLVED else result.status.value
+            yield movie_id, result.item_id, reason
+
+    store.write_publication_mapping(conn, mapping_rows())

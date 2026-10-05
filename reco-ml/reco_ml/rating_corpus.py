@@ -2,7 +2,7 @@
 
 from collections import defaultdict
 
-from reco_ml import repositories
+from reco_ml import repositories, ingestion_repository
 
 
 def load_corpus(conn, dataset_version):
@@ -12,16 +12,12 @@ def load_corpus(conn, dataset_version):
     Requires positive source IDs, as enforced for MovieLens by V8.
     Currently loads the corpus in memory; not intended for the full dataset yet.
     """
-    with conn.cursor() as cur:
-        cur.execute("SELECT EXISTS (SELECT 1 FROM staging.movielens_imports WHERE dataset_version=%s AND status='ready')", (dataset_version,))
-        if not cur.fetchone()[0]:
-            raise ValueError('Selected MovieLens snapshot is not published (ready)')
+    if not ingestion_repository.is_dataset_published(conn, dataset_version):
+        raise ValueError('Selected MovieLens snapshot is not published (ready)')
     app = repositories.fetch_all_ratings(conn)
     if any(user <= 0 for user, _, _ in app):
         raise ValueError('Application user IDs must be positive')
-    with conn.cursor() as cur:
-        cur.execute('SELECT movielens_user_id,item_id,rating FROM movielens_ratings WHERE dataset_version=%s', (dataset_version,))
-        external = cur.fetchall()
+    external = ingestion_repository.fetch_published_ratings(conn, dataset_version)
     if not external:
         raise ValueError('Selected MovieLens snapshot has no ratings')
     if any(user <= 0 for user, _, _ in external):

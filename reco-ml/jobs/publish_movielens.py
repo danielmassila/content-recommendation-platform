@@ -15,9 +15,13 @@ def main():
     parser.add_argument('--min-coverage', type=float, default=0.95,
                         help='Minimum fraction of source rating rows resolved (default: 0.95)')
     args = parser.parse_args()
+    # Notes and readiness must commit together; structural errors --> roll back both
     with get_db_connection() as conn:
-        report = publish_snapshot(conn,args.import_id,args.links,min_coverage=args.min_coverage)
-    print(json.dumps(report,indent=2))
+        report = publish_snapshot(
+            conn, args.import_id, args.links, min_coverage=args.min_coverage
+        )
+    print(json.dumps(report, indent=2))
+    # A coverage refusal is a valid diagnostic but a failed job for orchestration.
     return 1 if report.get("status") == "blocked" else 0
 
 
