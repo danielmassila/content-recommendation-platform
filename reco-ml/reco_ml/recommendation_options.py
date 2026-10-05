@@ -11,3 +11,7 @@ class RecommendationOptions:
     k_neighbors: int = 20
     algo_version: str = 'hybrid_usercf_pop'
     dataset_version: str | None = None
+
+
+# Preserve the historical CLI choice of 50 neighbors; direct Python calls use 20.
+CLI_RECOMMENDATION_DEFAULTS = RecommendationOptions(k_neighbors=50)

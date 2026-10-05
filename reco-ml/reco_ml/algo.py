@@ -18,8 +18,6 @@ DEMO_CONFIG = {
     "max_seed_items": 20,
     "max_raters_per_item": 30,
     "max_candidates_cf": 600,
-    "k_neighbors": 20,
-    "n_per_user": 20,
 }
 
 

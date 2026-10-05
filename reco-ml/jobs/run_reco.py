@@ -5,24 +5,24 @@ import time
 
 from reco_ml.algo import recompute_all_recommendations, recompute_user_recommendations
 from reco_ml.db import get_db_connection
-from reco_ml.recommendation_options import RecommendationOptions
+from reco_ml.recommendation_options import CLI_RECOMMENDATION_DEFAULTS, RecommendationOptions
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Recompute offline recommendations")
     parser.add_argument(
-        "--n", type=int, default=20, help="Number of recommendations per user"
+        "--n", type=int, default=CLI_RECOMMENDATION_DEFAULTS.n_per_user, help="Number of recommendations per user"
     )
     parser.add_argument(
         "--user-id",
         type=int,
         help="Recompute only this user, preserving every other user's recommendations",
     )
-    parser.add_argument("--k", type=int, default=50, help="Number of neighbors for CF")
+    parser.add_argument("--k", type=int, default=CLI_RECOMMENDATION_DEFAULTS.k_neighbors, help="Number of neighbors for CF")
     parser.add_argument(
         "--algo",
         type=str,
-        default="hybrid_usercf_pop",
+        default=CLI_RECOMMENDATION_DEFAULTS.algo_version,
         help="Algorithm version label stored in DB",
     )
     parser.add_argument(
