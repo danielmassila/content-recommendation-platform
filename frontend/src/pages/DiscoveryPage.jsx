@@ -5,7 +5,6 @@ import MovieRow from '../components/media/MovieRow'
 import { Button, EmptyState, ErrorState, LoadingState, SelectField, TextField } from '../components/ui'
 import { useAuth, useMovieCatalog, useMovieRating, useRecommendations } from '../hooks'
 
-const CATALOG_YEARS = Array.from({ length: 130 }, (_, index) => new Date().getFullYear() - index)
 
 const DiscoveryPage = () => {
   const { user } = useAuth()
@@ -52,7 +51,7 @@ const DiscoveryPage = () => {
     query: catalogQuery,
     ratingStatus: catalogRatingStatus,
     userId: user?.id,
-    year: selectedYear,
+    year: /^\d{4}$/.test(selectedYear) ? selectedYear : '',
   })
 
   useEffect(() => {
@@ -95,27 +94,6 @@ const DiscoveryPage = () => {
           <p className="eyebrow">Sélection du moment</p>
           <h1>Trouvons ta prochaine pépite</h1>
         </div>
-        <SelectField
-          id="genre-filter"
-          label="Genre"
-          value={selectedGenre}
-          onChange={(event) => {
-            setSelectedGenre(event.target.value)
-            setCatalogPage(1)
-          }}
-        >
-          <option value="all">Tous les genres</option>
-          <option value="Action">Action</option>
-          <option value="Adventure">Aventure</option>
-          <option value="Animation">Animation</option>
-          <option value="Comedy">Comédie</option>
-          <option value="Crime">Crime</option>
-          <option value="Drama">Drame</option>
-          <option value="Horror">Horreur</option>
-          <option value="Romance">Romance</option>
-          <option value="Sci-Fi">Science-fiction</option>
-          <option value="Thriller">Thriller</option>
-        </SelectField>
       </div>
 
       {isLoading ? (
@@ -232,21 +210,42 @@ const DiscoveryPage = () => {
           value={catalogQuery}
         />
         <SelectField
-          id="catalog-year-filter"
-          label="Année"
-          value={selectedYear}
+          id="catalog-genre-filter"
+          label="Genre"
+          value={selectedGenre}
           onChange={(event) => {
-            setSelectedYear(event.target.value)
+            setSelectedGenre(event.target.value)
             setCatalogPage(1)
           }}
         >
-          <option value="">Toutes les années</option>
-          {CATALOG_YEARS.map((year) => (
-            <option key={year} value={year}>
-              {year}
-            </option>
-          ))}
+          <option value="all">Tous les genres</option>
+          <option value="Action">Action</option>
+          <option value="Adventure">Aventure</option>
+          <option value="Animation">Animation</option>
+          <option value="Comedy">Comédie</option>
+          <option value="Crime">Crime</option>
+          <option value="Drama">Drame</option>
+          <option value="Horror">Horreur</option>
+          <option value="Romance">Romance</option>
+          <option value="Sci-Fi">Science-fiction</option>
+          <option value="Thriller">Thriller</option>
         </SelectField>
+        <TextField
+          id="catalog-year-filter"
+          label="Année de sortie"
+          type="text"
+          inputMode="numeric"
+          maxLength={4}
+          placeholder="Toutes les années"
+          value={selectedYear}
+          onChange={(event) => {
+            const year = event.target.value
+            if (/^\d{0,4}$/.test(year)) {
+              setSelectedYear(year)
+              setCatalogPage(1)
+            }
+          }}
+        />
         <SelectField
           id="catalog-vote-filter"
           label="Note minimale"
@@ -257,11 +256,16 @@ const DiscoveryPage = () => {
           }}
         >
           <option value="">Toutes les notes</option>
+          <option value="1">1/10</option>
+          <option value="2">2/10</option>
+          <option value="3">3/10</option>
           <option value="4">4/10</option>
           <option value="5">5/10</option>
           <option value="6">6/10</option>
           <option value="7">7/10</option>
           <option value="8">8/10</option>
+          <option value="9">9/10</option>
+          <option value="10">10/10</option>
         </SelectField>
         <SelectField
           id="catalog-rating-filter"

@@ -520,9 +520,14 @@ select:focus-visible {
 
 .catalog-tools {
   display: grid;
-  grid-template-columns: minmax(220px, 1.5fr) repeat(3, minmax(150px, 0.7fr));
+  grid-template-columns: minmax(180px, 1.5fr) repeat(4, minmax(0, 1fr));
   align-items: end;
   gap: 16px;
+}
+
+.catalog-tools > .field,
+.catalog-tools > .select-field {
+  min-width: 0;
 }
 
 .catalog-tools__count {
