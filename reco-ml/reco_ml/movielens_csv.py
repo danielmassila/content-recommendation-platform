@@ -1,15 +1,9 @@
-"""MovieLens rating parsing shared by staging and source validation."""
+"""Read and validate MovieLens rating rows without loading the file into memory."""
 
 import csv
-import hashlib
-import io
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
-from pathlib import Path
-
-
-from reco_ml.movie_mapping import MappingConflict, parse_links
 
 
 @dataclass(frozen=True)
@@ -41,23 +35,3 @@ def iter_ratings(source):
         except (ValueError, InvalidOperation, OverflowError, OSError) as error:
             raise ValueError(f'Invalid rating at line {reader.line_num}') from error
         yield reader.line_num, rating
-
-
-def parse_ratings(source):
-    ratings = {}
-    for line, rating in iter_ratings(source):
-        key = rating.user_id, rating.movie_id
-        if key in ratings and ratings[key] != rating:
-            raise MappingConflict(f'Conflicting ratings at line {line}')
-        ratings[key] = rating
-    return list(ratings.values())
-
-
-def read_snapshot(directory: Path, *, rejected_links=None):
-    # Parse exactly the bytes hashed: files cannot change between hashing and parsing.
-    content = {name: (directory / name).read_bytes() for name in ('links.csv', 'ratings.csv')}
-    hashes = {name: hashlib.sha256(data).hexdigest() for name, data in content.items()}
-    digest = hashlib.sha256(''.join(f'{name}:{hashes[name]}\n' for name in sorted(hashes)).encode()).hexdigest()
-    links = parse_links(io.StringIO(content['links.csv'].decode('utf-8-sig')), rejected=rejected_links)
-    ratings = parse_ratings(io.StringIO(content['ratings.csv'].decode('utf-8-sig')))
-    return f'sha256:{digest}', hashes, links, ratings

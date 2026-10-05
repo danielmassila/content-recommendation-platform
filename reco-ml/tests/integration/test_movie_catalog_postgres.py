@@ -103,16 +103,22 @@ def test_staging_tracks_attempts_and_validates_completion():
 
 def test_streaming_staging_batches_and_failure_are_isolated(tmp_path):
     from reco_ml.staging_import import stage_snapshot
-    from reco_ml.movielens_import import read_snapshot
+    import hashlib
     (tmp_path / 'links.csv').write_text('movieId,imdbId,tmdbId\n1,,862\n')
     path = tmp_path / 'ratings.csv'
     path.write_text('userId,movieId,rating,timestamp\n1,1,4,1\n2,1,5,2\n3,1,3,3\n')
-    expected = read_snapshot(tmp_path)[0]
+    hashes = {name: hashlib.sha256((tmp_path / name).read_bytes()).hexdigest()
+              for name in ('links.csv', 'ratings.csv')}
+    expected = 'sha256:' + hashlib.sha256(
+        ''.join(f'{name}:{hashes[name]}\n' for name in sorted(hashes)).encode()
+    ).hexdigest()
     with psycopg.connect(DSN) as conn:
         before = conn.execute('SELECT count(*) FROM public.movielens_ratings').fetchone()[0]
         report = stage_snapshot(conn, tmp_path, batch_size=2)
         assert report['rows_staged'] == 3
         assert report['dataset_version'] == expected
+        assert conn.execute('SELECT source_hashes FROM staging.movielens_imports WHERE id=%s',
+                            (report['import_id'],)).fetchone()[0] == hashes
         assert conn.execute('SELECT status,rows_read,rows_accepted,staged_at IS NOT NULL FROM staging.movielens_imports WHERE id=%s',(report['import_id'],)).fetchone() == ('loading',3,0,True)
         assert conn.execute('SELECT count(*) FROM public.movielens_ratings').fetchone()[0] == before
     path.write_text('userId,movieId,rating,timestamp\n1,1,4,1\n2,1,5,2\n3,1,NaN,3\n')

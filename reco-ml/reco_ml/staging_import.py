@@ -8,7 +8,7 @@ from pathlib import Path
 
 from psycopg.types.json import Jsonb
 
-from reco_ml.movielens_import import iter_ratings
+from reco_ml.movielens_csv import iter_ratings
 
 
 def stage_snapshot(conn, directory: Path, batch_size=10000):
