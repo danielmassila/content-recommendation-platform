@@ -156,3 +156,30 @@ Les tests PostgreSQL utilisent `CATALOG_TEST_DSN` vers une base jetable distinct
 et y appliquent les migrations. Ne jamais utiliser la base de l'application pour
 ces tests. Le parcours applicatif se vérifie avec un petit échantillon publié :
 créer un compte, noter un film, recalculer et consulter les recommandations.
+
+## Python recommendation interface
+
+Python callers now pass an immutable `RecommendationOptions` object instead of
+separate `n_per_user`, `k_neighbors`, `algo_version` and `dataset_version` arguments:
+
+```python
+from reco_ml.algo import recompute_all_recommendations, recompute_user_recommendations
+from reco_ml.recommendation_options import RecommendationOptions
+
+options = RecommendationOptions(
+    n_per_user=20,
+    k_neighbors=50,
+    dataset_version="sha256:<published-version>",
+)
+# Use one of these inside the caller's database transaction:
+recompute_all_recommendations(conn, options=options)
+# Or target a single application account:
+recompute_user_recommendations(conn, user_id=42, options=options)
+```
+
+External scripts using the old keyword arguments must migrate to this interface.
+All callers in this repository have been migrated. CLI flags remain unchanged:
+`--n`, `--k`, `--algo`, `--dataset-version` and `--user-id`.
+Defaults live in `recommendation_options.py`: Python calls retain 20 neighbors,
+while the explicit CLI preset retains its historical 50 neighbors. Both default
+to 20 recommendations. No algorithm behavior changes are intended by this cleanup.
