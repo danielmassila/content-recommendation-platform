@@ -76,7 +76,7 @@ recommence depuis le début ; la reprise à la dernière ligne n'est pas implém
 ### 4. Valider et publier
 
 ```bash
-make py-publish IMPORT_ID=<uuid-retourne> DATA_DIR=/datasets/validation-small
+make py-publish IMPORT_ID=<uuid-retourne> DATA_DIR=/datasets/validation-small MIN_COVERAGE=0.95
 ```
 
 Le traitement vérifie le fichier de correspondances, le nombre de lignes et les
@@ -90,8 +90,21 @@ Relancer une tentative déjà publiée ne modifie rien. Une validation échouée
 la tentative disponible pour correction ; elle ne publie aucune modification.
 
 Cette étape verrouille les écritures du catalogue et du staging pendant la
-transaction. La lancer hors des autres chargements. Conserver son bilan JSON :
-les motifs détaillés de rejet ne sont pas encore persistés en base.
+transaction. La lancer hors des autres chargements. Le bilan JSON est affiché en sortie de commande, sans stockage en base.
+
+Par défaut, au moins 95 % des lignes source doivent être rattachées au catalogue.
+Le ratio compte les lignes de notes, doublons identiques compris, pas les films.
+`MIN_COVERAGE` accepte une valeur entre 0 et 1 ; même avec 0, aucune note résolue
+interdit la publication. Ce seuil est un choix initial configurable, pas une
+mesure de la qualité des recommandations.
+
+Un refus de couverture renvoie un bilan `blocked` et un code de sortie non nul.
+Les notes finales et les compteurs restent inchangés ; la tentative reste
+`loading`. Compléter le catalogue puis relancer la même commande avec le même UUID.
+Le bilan affiché contient la date, le seuil, le ratio et les nombres de rejets par
+motif. Les erreurs de structure, de checksum ou d'identité restent des exceptions
+et annulent la transaction. Relancer une tentative `ready` indique simplement
+qu'elle est déjà publiée, sans recalculer son bilan.
 
 ### 5. Calculer et consulter les recommandations
 
@@ -119,8 +132,8 @@ Une configuration vide utilise seulement les notes applicatives ; la commande
 
 - Le registre `ready` est encore dans le staging : ne pas supprimer une tentative
   publiée, même si ses notes finales sont conservées.
-- Une publication peut accepter une faible proportion des notes. Les seuils de
-  couverture et la politique de republication restent à définir.
+- Une tentative déjà publiée reste immuable. La politique de republication et
+  un historique de tous les bilans restent à définir.
 - Le calcul charge le corpus en mémoire, même pour un seul utilisateur. Full doit
   attendre des mesures et une adaptation du moteur.
 - `make py-eval` évalue les notes applicatives, pas encore le corpus externe.

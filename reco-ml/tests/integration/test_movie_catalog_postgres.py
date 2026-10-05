@@ -189,7 +189,7 @@ def test_publication_is_atomic_deduplicated_and_replayable(tmp_path):
     with psycopg.connect(DSN) as conn:
         staged=stage_snapshot(conn,tmp_path,batch_size=1)
     with psycopg.connect(DSN) as conn:
-        report=publish_snapshot(conn,staged['import_id'],links)
+        report=publish_snapshot(conn,staged['import_id'],links,min_coverage=0.6)
         assert report['published']==1
         assert report['duplicate_rows']==1
         assert report['rejected_ratings']=={'missing_tmdb_id':1}
@@ -197,9 +197,9 @@ def test_publication_is_atomic_deduplicated_and_replayable(tmp_path):
     with psycopg.connect(DSN) as conn:
         assert conn.execute('SELECT count(*) FROM public.movielens_ratings WHERE dataset_version=%s',(staged['dataset_version'],)).fetchone()[0]==0
         assert conn.execute('SELECT status FROM staging.movielens_imports WHERE id=%s',(staged['import_id'],)).fetchone()[0]=='loading'
-        publish_snapshot(conn,staged['import_id'],links)
+        publish_snapshot(conn,staged['import_id'],links,min_coverage=0.6)
     with psycopg.connect(DSN) as conn:
-        assert publish_snapshot(conn,staged['import_id'],links)['already_published']
+        assert publish_snapshot(conn,staged['import_id'],links,min_coverage=0.6)['already_published']
 
 
 def test_publication_rejects_changed_links_and_conflicting_notes(tmp_path):
@@ -273,3 +273,46 @@ def test_catalog_sync_resumes_after_outage_without_duplicate_movies():
         client.get_movie.assert_not_called()
         assert conn.execute('SELECT id FROM items WHERE tmdb_id=990001').fetchone()[0] == item_id
         assert conn.execute('SELECT count(*) FROM items WHERE tmdb_id IN (990001,990002)').fetchone()[0] == 2
+
+
+def test_publication_coverage_block_preserves_state_and_is_retryable(tmp_path):
+    from reco_ml.staging_import import stage_snapshot
+    from reco_ml.staging_publish import publish_snapshot
+    (tmp_path / 'links.csv').write_text('movieId,imdbId,tmdbId\n991001,,991001\n991002,,991002\n')
+    (tmp_path / 'ratings.csv').write_text('userId,movieId,rating,timestamp\n42,991001,4,1\n42,991002,3,1\n')
+    with psycopg.connect(DSN) as conn:
+        upsert_tmdb_movie(conn, {'id': 991001, 'title': 'First'})
+        staged = stage_snapshot(conn, tmp_path)
+    with psycopg.connect(DSN) as conn:
+        report = publish_snapshot(conn, staged['import_id'], tmp_path / 'links.csv')
+        assert report['status'] == 'blocked'
+        assert report['coverage'] == 0.5
+        assert report['rejected_ratings'] == {'missing_catalog_movie': 1}
+    with psycopg.connect(DSN) as conn:
+        row = conn.execute('SELECT status,rows_accepted,rows_rejected FROM staging.movielens_imports WHERE id=%s', (staged['import_id'],)).fetchone()
+        assert row == ('loading', 0, 0)
+        assert conn.execute('SELECT count(*) FROM public.movielens_ratings WHERE dataset_version=%s', (staged['dataset_version'],)).fetchone()[0] == 0
+        upsert_tmdb_movie(conn, {'id': 991002, 'title': 'Second'})
+    with psycopg.connect(DSN) as conn:
+        report = publish_snapshot(conn, staged['import_id'], tmp_path / 'links.csv', min_coverage=1)
+        assert report['status'] == 'ready'
+        assert report['published'] == 2
+    with psycopg.connect(DSN) as conn:
+        saved = conn.execute('SELECT status,rows_accepted,rows_rejected FROM staging.movielens_imports WHERE id=%s', (staged['import_id'],)).fetchone()
+        assert saved == ('ready', 2, 0)
+        replay = publish_snapshot(conn, staged['import_id'], tmp_path / 'links.csv')
+        assert replay['already_published']
+        assert conn.execute('SELECT count(*) FROM public.movielens_ratings WHERE dataset_version=%s', (staged['dataset_version'],)).fetchone()[0] == 2
+
+
+def test_zero_coverage_cannot_be_published_even_with_zero_threshold(tmp_path):
+    from reco_ml.staging_import import stage_snapshot
+    from reco_ml.staging_publish import publish_snapshot
+    (tmp_path / 'links.csv').write_text('movieId,imdbId,tmdbId\n992001,,\n')
+    (tmp_path / 'ratings.csv').write_text('userId,movieId,rating,timestamp\n42,992001,4,1\n')
+    with psycopg.connect(DSN) as conn:
+        staged = stage_snapshot(conn, tmp_path)
+    with psycopg.connect(DSN) as conn:
+        report = publish_snapshot(conn, staged['import_id'], tmp_path / 'links.csv', min_coverage=0)
+        assert report['status'] == 'blocked'
+        assert report['reason'] == 'no_resolved_ratings'

@@ -87,6 +87,7 @@ frontend:
 # Reco ML jobs
 DATA_DIR ?= /datasets/raw_data
 BATCH_SIZE ?= 10000
+MIN_COVERAGE ?= 0.95
 CATALOG_LIMIT ?= 100
 CATALOG_DELAY ?= 0.25
 
@@ -110,7 +111,7 @@ py-stage:
 
 py-publish:
 	@test -n "$(IMPORT_ID)" || (echo "Usage: make py-publish IMPORT_ID=<uuid> DATA_DIR=/datasets/..."; exit 1)
-	docker compose run --rm reco-job python -m jobs.publish_movielens --import-id "$(IMPORT_ID)" --links "$(DATA_DIR)/links.csv"
+	docker compose run --rm reco-job python -m jobs.publish_movielens --import-id "$(IMPORT_ID)" --links "$(DATA_DIR)/links.csv" --min-coverage "$(MIN_COVERAGE)"
 
 py-reco:
 	@test -n "$(DATASET_VERSION)" || (echo "Usage: make py-reco DATASET_VERSION=sha256:..."; exit 1)
