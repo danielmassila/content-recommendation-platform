@@ -1,3 +1,5 @@
+"""Legacy latest-small downloader; not part of the staged ingestion workflow."""
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -18,6 +20,7 @@ REQUIRED = {
 
 
 def download_if_needed() -> None:
+    """Reuse a non-empty archive; integrity verification is not implemented yet."""
     DATA_DIR.mkdir(parents=True, exist_ok=True)
 
     if ZIP_PATH.exists() and ZIP_PATH.stat().st_size > 0:
