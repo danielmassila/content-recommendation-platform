@@ -1,5 +1,7 @@
 """MovieLens ingestion SQL. Callers own transactions, commits and rollbacks."""
 
+from collections.abc import Iterable
+from decimal import Decimal
 from dataclasses import dataclass
 from datetime import datetime
 from uuid import UUID
@@ -8,6 +10,7 @@ from psycopg import Connection
 from psycopg.types.json import Jsonb
 
 from reco_ml.movielens_csv import ExternalRating
+
 
 @dataclass(frozen=True)
 class StagedImport:
@@ -53,14 +56,25 @@ def mark_import_ready(
 def replace_published_ratings(conn: Connection, import_id: UUID, version: str) -> int:
     """Replace this version only, within the caller's publication transaction."""
     # Replace only this snapshot; other snapshots and application tables are untouched.
-    conn.execute('DELETE FROM public.movielens_ratings WHERE dataset_version=%s',(version,))
-    result = conn.execute('''INSERT INTO public.movielens_ratings
-        (dataset_version,movielens_user_id,item_id,rating,rated_at)
-        SELECT DISTINCT %s,s.movielens_user_id,m.item_id,s.rating,s.rated_at
-        FROM staging.movielens_ratings s JOIN publication_mapping m ON m.movie_id=s.movielens_movie_id
-        WHERE s.import_id=%s AND m.item_id IS NOT NULL''',(version,import_id))
-    published = result.rowcount
-    return published
+    conn.execute(
+        'DELETE FROM public.movielens_ratings WHERE dataset_version = %s',
+        (version,),
+    )
+    result = conn.execute(
+        """
+        INSERT INTO public.movielens_ratings
+            (dataset_version, movielens_user_id, item_id, rating, rated_at)
+        SELECT DISTINCT %s, ratings.movielens_user_id, mapping.item_id,
+            ratings.rating, ratings.rated_at
+        FROM staging.movielens_ratings AS ratings
+        JOIN publication_mapping AS mapping
+            ON mapping.movie_id = ratings.movielens_movie_id
+        WHERE ratings.import_id = %s AND mapping.item_id IS NOT NULL
+        """,
+        (version, import_id),
+    )
+    return result.rowcount
+
 
 
 def count_rejections(conn: Connection, import_id: UUID) -> dict[str, int]:
@@ -101,52 +115,69 @@ def write_rating_batch(
                     rating.rated_at,
                 ))
 
-def create_import(conn, import_id, dataset_version, source_hashes):
+def create_import(
+    conn: Connection, import_id: UUID, dataset_version: str, source_hashes: dict[str, str]
+) -> None:
     conn.execute(
         'INSERT INTO staging.movielens_imports (id,dataset_version,source_hashes) VALUES (%s,%s,%s)',
         (import_id, dataset_version, Jsonb(source_hashes)),
     )
 
 
-def update_progress(conn, import_id, rows_staged):
-    conn.execute('UPDATE staging.movielens_imports SET rows_read=%s WHERE id=%s', (rows_staged, import_id))
+def update_progress(conn: Connection, import_id: UUID, rows_staged: int) -> None:
+    conn.execute(
+        'UPDATE staging.movielens_imports SET rows_read = %s WHERE id = %s',
+        (rows_staged, import_id),
+    )
 
 
-def mark_staged(conn, import_id):
+def mark_staged(conn: Connection, import_id: UUID) -> None:
     conn.execute('UPDATE staging.movielens_imports SET staged_at=now() WHERE id=%s', (import_id,))
 
 
-def mark_failed(conn, import_id, error_name):
+def mark_failed(conn: Connection, import_id: UUID, error_name: str) -> None:
     conn.execute(
-        "UPDATE staging.movielens_imports SET status='failed',finished_at=now(),error_message=%s WHERE id=%s",
+        """
+        UPDATE staging.movielens_imports
+        SET status = 'failed', finished_at = now(), error_message = %s
+        WHERE id = %s
+        """,
         (error_name, import_id),
     )
 
 
-def lock_publication_sources(conn):
+def lock_publication_sources(conn: Connection) -> None:
     """Keep source notes and catalogue identities stable until the transaction ends."""
     conn.execute('LOCK TABLE staging.movielens_ratings IN SHARE MODE')
     conn.execute('LOCK TABLE items IN SHARE MODE')
 
 
-def lock_dataset(conn, dataset_version):
+def lock_dataset(conn: Connection, dataset_version: str) -> None:
     conn.execute('SELECT pg_advisory_xact_lock(hashtextextended(%s, 0))', (dataset_version,))
 
 
-def is_dataset_published(conn, dataset_version) -> bool:
+def is_dataset_published(conn: Connection, dataset_version: str) -> bool:
     with conn.cursor() as cursor:
         cursor.execute(
-            "SELECT EXISTS (SELECT 1 FROM staging.movielens_imports WHERE dataset_version=%s AND status='ready')",
+            """
+            SELECT EXISTS (
+                SELECT 1 FROM staging.movielens_imports
+                WHERE dataset_version = %s AND status = 'ready'
+            )
+            """,
             (dataset_version,),
         )
         return cursor.fetchone()[0]
 
 
-def count_staged_ratings(conn, import_id) -> int:
-    return conn.execute('SELECT count(*) FROM staging.movielens_ratings WHERE import_id=%s', (import_id,)).fetchone()[0]
+def count_staged_ratings(conn: Connection, import_id: UUID) -> int:
+    return conn.execute(
+        'SELECT count(*) FROM staging.movielens_ratings WHERE import_id = %s',
+        (import_id,),
+    ).fetchone()[0]
 
 
-def find_conflicting_rating(conn, import_id):
+def find_conflicting_rating(conn: Connection, import_id: UUID) -> tuple[int, int] | None:
     return conn.execute(
         """
         SELECT movielens_user_id, movielens_movie_id
@@ -157,23 +188,35 @@ def find_conflicting_rating(conn, import_id):
     ).fetchone()
 
 
-def fetch_staged_movie_ids(conn, import_id) -> list[int]:
+def fetch_staged_movie_ids(conn: Connection, import_id: UUID) -> list[int]:
     return [row[0] for row in conn.execute(
         'SELECT DISTINCT movielens_movie_id FROM staging.movielens_ratings WHERE import_id=%s',
         (import_id,),
     ).fetchall()]
 
 
-def write_publication_mapping(conn, rows):
+def write_publication_mapping(
+    conn: Connection, rows: Iterable[tuple[int, int | None, str | None]]
+) -> None:
     """Create a transaction-local mapping and consume resolved rows incrementally."""
-    conn.execute('CREATE TEMP TABLE publication_mapping(movie_id BIGINT PRIMARY KEY,item_id BIGINT,reason TEXT) ON COMMIT DROP')
+    conn.execute(
+        """
+        CREATE TEMP TABLE publication_mapping (
+            movie_id BIGINT PRIMARY KEY,
+            item_id BIGINT,
+            reason TEXT
+        ) ON COMMIT DROP
+        """
+    )
     with conn.cursor() as cursor:
         with cursor.copy('COPY publication_mapping FROM STDIN') as copy:
             for row in rows:
                 copy.write_row(row)
 
 
-def fetch_published_ratings(conn, dataset_version):
+def fetch_published_ratings(
+    conn: Connection, dataset_version: str
+) -> list[tuple[int, int, Decimal]]:
     with conn.cursor() as cursor:
         cursor.execute(
             'SELECT movielens_user_id,item_id,rating FROM movielens_ratings WHERE dataset_version=%s',
