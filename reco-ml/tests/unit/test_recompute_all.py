@@ -1,3 +1,4 @@
+from reco_ml.recommendation_options import RecommendationOptions
 from reco_ml.algo import recompute_all_recommendations
 from reco_ml.repositories import RecommendationRow
 
@@ -60,9 +61,11 @@ def test_recompute_all_recommendations_writes_rows(monkeypatch):
 
     recompute_all_recommendations(
         conn=object(),
-        n_per_user=2,
-        k_neighbors=50,
-        algo_version="test_algo",
+        options=RecommendationOptions(
+            n_per_user=2,
+            k_neighbors=50,
+            algo_version="test_algo",
+        ),
     )
 
     rows = captured["rows"]

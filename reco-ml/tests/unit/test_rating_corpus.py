@@ -1,3 +1,4 @@
+from reco_ml.recommendation_options import RecommendationOptions
 from unittest.mock import MagicMock
 
 import pytest
@@ -36,7 +37,7 @@ def test_external_neighbors_are_not_recommendation_recipients(monkeypatch):
         [(1,10,4.),(-1,10,5.),(-1,20,4.)], {10:(2,4.5),20:(1,4.)}, 4.33))
     captured=[]
     monkeypatch.setattr(algo.repositories, 'write_recommendations', lambda conn, rows: captured.extend(rows))
-    algo.recompute_all_recommendations(object(), dataset_version='test')
+    algo.recompute_all_recommendations(object(), options=RecommendationOptions(dataset_version='test'))
     assert captured
     assert {row.user_id for row in captured} <= {1,2}
     assert all(row.item_id != 10 for row in captured if row.user_id == 1)

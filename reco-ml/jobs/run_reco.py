@@ -1,8 +1,11 @@
+"""Compute recommendations for all application users or one selected account."""
+
 import argparse
 import time
 
 from reco_ml.algo import recompute_all_recommendations, recompute_user_recommendations
 from reco_ml.db import get_db_connection
+from reco_ml.recommendation_options import RecommendationOptions
 
 
 def main() -> None:
@@ -34,44 +37,41 @@ def main() -> None:
     start = time.perf_counter()
 
     with get_db_connection() as conn:
+        # Both modes use the same corpus and algorithm settings.
+        options = RecommendationOptions(
+            n_per_user=args.n,
+            k_neighbors=args.k,
+            algo_version=args.algo,
+            dataset_version=args.dataset_version,
+        )
         if args.user_id is None:
-            recompute_all_recommendations(
-                conn,
-                n_per_user=args.n,
-                k_neighbors=args.k,
-                algo_version=args.algo,
-                dataset_version=args.dataset_version,
-            )
+            recompute_all_recommendations(conn, options=options)
         else:
-            recompute_user_recommendations(
-                conn,
-                user_id=args.user_id,
-                n_per_user=args.n,
-                k_neighbors=args.k,
-                algo_version=args.algo,
-                dataset_version=args.dataset_version,
-            )
+            recompute_user_recommendations(conn, user_id=args.user_id, options=options)
 
         end = time.perf_counter()
         duration = end - start
         print(f"\nRecomputation finished in {duration:.2f} seconds")
 
         if args.check:
-            with conn.cursor() as cur:
-                cur.execute("SELECT COUNT(*) FROM recommendations;")
-                total = cur.fetchone()[0]
-                print("recommendations rows:", total)
+            _print_recommendation_counts(conn)
 
-                cur.execute(
-                    """
-                    SELECT user_id, COUNT(*)
-                    FROM recommendations
-                    GROUP BY user_id
-                    ORDER BY COUNT(*) DESC
-                    LIMIT 5;
-                    """
-                )
-                print("top users by #recs:", cur.fetchall())
+
+def _print_recommendation_counts(conn) -> None:
+    """Display a small sanity check, not a recommendation-quality evaluation."""
+    with conn.cursor() as cursor:
+        cursor.execute("SELECT COUNT(*) FROM recommendations;")
+        print("recommendations rows:", cursor.fetchone()[0])
+        cursor.execute(
+            """
+            SELECT user_id, COUNT(*)
+            FROM recommendations
+            GROUP BY user_id
+            ORDER BY COUNT(*) DESC
+            LIMIT 5;
+            """
+        )
+        print("top users by #recs:", cursor.fetchall())
 
 
 if __name__ == "__main__":

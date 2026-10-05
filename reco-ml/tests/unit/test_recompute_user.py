@@ -1,3 +1,4 @@
+from reco_ml.recommendation_options import RecommendationOptions
 from reco_ml import algo
 from reco_ml.repositories import RecommendationRow
 
@@ -30,7 +31,7 @@ def test_recompute_user_writes_only_target_user(monkeypatch):
 
     monkeypatch.setattr(algo.repositories, "write_user_recommendations", write_user)
 
-    algo.recompute_user_recommendations(object(), user_id=1, n_per_user=5)
+    algo.recompute_user_recommendations(object(), user_id=1, options=RecommendationOptions(n_per_user=5))
 
     assert captured["user_id"] == 1
     assert all(isinstance(row, RecommendationRow) for row in captured["rows"])

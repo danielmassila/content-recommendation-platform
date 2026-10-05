@@ -1,3 +1,4 @@
+from reco_ml.recommendation_options import RecommendationOptions
 from reco_ml.rating_corpus import load_corpus
 import statistics
 import math
@@ -603,10 +604,7 @@ def recommend_for_user(
 
 def recompute_all_recommendations(
     conn,
-    n_per_user: int = DEMO_CONFIG["n_per_user"],
-    k_neighbors: int = DEMO_CONFIG["k_neighbors"],
-    algo_version: str = "hybrid_usercf_pop",
-    dataset_version: str | None = None,
+    options: RecommendationOptions = RecommendationOptions(),
 ) -> None:
     user_ids = repositories.fetch_all_users(conn)
     item_ids = repositories.fetch_all_items(conn)
@@ -614,12 +612,12 @@ def recompute_all_recommendations(
     all_items_set = set(item_ids)
     preferences_by_user = repositories.fetch_user_preferences(conn)
 
-    if dataset_version is None:
+    if options.dataset_version is None:
         ratings = repositories.fetch_all_ratings(conn)
         stats_by_items = repositories.get_stats_by_item(conn)
         global_rating = repositories.get_global_rating(conn)
     else:
-        ratings, stats_by_items, global_rating = load_corpus(conn, dataset_version)
+        ratings, stats_by_items, global_rating = load_corpus(conn, options.dataset_version)
 
     ratings_by_user = build_ratings_by_user(ratings)
     users_by_item = build_users_by_item(ratings)
@@ -639,8 +637,8 @@ def recompute_all_recommendations(
     for user_id in user_ids:
         recs = recommend_for_user(
             user_id=user_id,
-            n=n_per_user,
-            k=k_neighbors,
+            n=options.n_per_user,
+            k=options.k_neighbors,
             ratings_by_user=ratings_by_user,
             users_by_item=users_by_item,
             pop_scores_all=pop_scores_all,
@@ -663,7 +661,7 @@ def recompute_all_recommendations(
                     user_id=int(user_id),
                     item_id=int(item_id),
                     score=float(score),
-                    algo_version=algo_version,
+                    algo_version=options.algo_version,
                     rank=rank,
                 )
             )
@@ -674,10 +672,7 @@ def recompute_all_recommendations(
 def recompute_user_recommendations(
     conn,
     user_id: int,
-    n_per_user: int = DEMO_CONFIG["n_per_user"],
-    k_neighbors: int = DEMO_CONFIG["k_neighbors"],
-    algo_version: str = "hybrid_usercf_pop",
-    dataset_version: str | None = None,
+    options: RecommendationOptions = RecommendationOptions(),
 ) -> None:
     user_ids = repositories.fetch_all_users(conn)
     if user_id not in user_ids:
@@ -686,12 +681,12 @@ def recompute_user_recommendations(
     item_ids = repositories.fetch_all_items(conn)
     item_profiles = repositories.fetch_all_item_profiles(conn)
     preferences_by_user = repositories.fetch_user_preferences(conn)
-    if dataset_version is None:
+    if options.dataset_version is None:
         ratings = repositories.fetch_all_ratings(conn)
         stats_by_items = repositories.get_stats_by_item(conn)
         global_rating = repositories.get_global_rating(conn)
     else:
-        ratings, stats_by_items, global_rating = load_corpus(conn, dataset_version)
+        ratings, stats_by_items, global_rating = load_corpus(conn, options.dataset_version)
 
     ratings_by_user = build_ratings_by_user(ratings)
     users_by_item = build_users_by_item(ratings)
@@ -702,8 +697,8 @@ def recompute_user_recommendations(
 
     recs = recommend_for_user(
         user_id=user_id,
-        n=n_per_user,
-        k=k_neighbors,
+        n=options.n_per_user,
+        k=options.k_neighbors,
         ratings_by_user=ratings_by_user,
         users_by_item=users_by_item,
         pop_scores_all=pop_scores_all,
@@ -723,7 +718,7 @@ def recompute_user_recommendations(
             user_id=user_id,
             item_id=int(item_id),
             score=float(score),
-            algo_version=algo_version,
+            algo_version=options.algo_version,
             rank=rank,
         )
         for rank, (item_id, score) in enumerate(recs, start=1)
