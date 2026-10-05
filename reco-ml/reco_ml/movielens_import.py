@@ -1,19 +1,15 @@
-"""Snapshot parsing and non-destructive loading of external MovieLens ratings."""
+"""MovieLens rating parsing shared by staging and source validation."""
 
 import csv
 import hashlib
 import io
-from collections import Counter
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
-from urllib.error import HTTPError
 
-from psycopg.types.json import Jsonb
 
-from reco_ml.movie_catalog import upsert_tmdb_movie
-from reco_ml.movie_mapping import CatalogMovie, MappingConflict, MovieResolver, ResolutionStatus, parse_links
+from reco_ml.movie_mapping import MappingConflict, parse_links
 
 
 @dataclass(frozen=True)
@@ -65,76 +61,3 @@ def read_snapshot(directory: Path, *, rejected_links=None):
     links = parse_links(io.StringIO(content['links.csv'].decode('utf-8-sig')), rejected=rejected_links)
     ratings = parse_ratings(io.StringIO(content['ratings.csv'].decode('utf-8-sig')))
     return f'sha256:{digest}', hashes, links, ratings
-
-
-def import_snapshot(conn, directory: Path, client=None):
-    """Load one snapshot; caller commits or rolls back the complete operation.
-
-    A supplied client may fetch missing catalog movies. Without it, missing
-    films are reported for later replay. Only HTTP 404 is a nonfatal API result.
-    """
-    rejected_links = {}
-    version, hashes, links, ratings = read_snapshot(directory, rejected_links=rejected_links)
-    # Do not allow the legacy direct path to mutate a validated snapshot.
-    conn.execute('SELECT pg_advisory_xact_lock(hashtextextended(%s,0))', (version,))
-    if conn.execute("SELECT 1 FROM staging.movielens_imports WHERE dataset_version=%s AND status='ready'", (version,)).fetchone():
-        raise ValueError('Snapshot already published; use the staging publication workflow')
-    catalog = [CatalogMovie(*row) for row in conn.execute(
-        "SELECT id, tmdb_id, movielens_id, imdb_id FROM items WHERE type='MOVIE' AND tmdb_id IS NOT NULL"
-    ).fetchall()]
-    resolver = MovieResolver(links, catalog)
-    resolved, rejected = {}, {}
-    for movie_id in sorted({rating.movie_id for rating in ratings}):
-        if movie_id in rejected_links:
-            rejected[movie_id] = rejected_links[movie_id]
-            continue
-        result = resolver.resolve(movie_id)
-        if result.status == ResolutionStatus.MISSING_CATALOG_MOVIE and client is not None:
-            try:
-                payload = client.get_movie(result.tmdb_id)
-            except HTTPError as error:
-                if error.code != 404:
-                    raise
-                rejected[movie_id] = 'tmdb_not_found'
-                continue
-            if payload.get('id') != result.tmdb_id:
-                raise MappingConflict('TMDB response identity differs from links.csv')
-            link = links[movie_id]
-            if link.imdb_id and payload.get('imdb_id') and link.imdb_id != payload['imdb_id']:
-                raise MappingConflict('IMDb identities differ between MovieLens and TMDB')
-            item_id = upsert_tmdb_movie(conn, payload)
-        elif result.status == ResolutionStatus.RESOLVED:
-            item_id = result.item_id
-        else:
-            rejected[movie_id] = result.status.value
-            continue
-        link = links[movie_id]
-        metadata = {'movieLensId': movie_id, 'source': 'movielens+tmdb'}
-        if link.imdb_id:
-            metadata['imdbId'] = link.imdb_id
-        row = conn.execute("""
-            UPDATE items SET movielens_id=%s, imdb_id=COALESCE(imdb_id,%s),
-                metadata=COALESCE(metadata,'{}'::jsonb) || %s
-            WHERE id=%s AND (movielens_id IS NULL OR movielens_id=%s)
-                AND (imdb_id IS NULL OR %s::text IS NULL OR imdb_id=%s)
-            RETURNING id
-            """, (movie_id, link.imdb_id, Jsonb(metadata), item_id, movie_id, link.imdb_id, link.imdb_id)).fetchone()
-        if row is None:
-            raise MappingConflict('Catalog identity changed during import')
-        resolved[movie_id] = item_id
-    inserted = 0
-    rejection_counts = Counter()
-    for rating in ratings:
-        if rating.movie_id not in resolved:
-            rejection_counts[rejected[rating.movie_id]] += 1
-            continue
-        row = conn.execute("""
-            INSERT INTO movielens_ratings(dataset_version,movielens_user_id,item_id,rating,rated_at)
-            VALUES (%s,%s,%s,%s,%s) ON CONFLICT DO NOTHING RETURNING item_id
-            """, (version, rating.user_id, resolved[rating.movie_id], rating.rating, rating.rated_at)).fetchone()
-        inserted += row is not None
-    accepted = len(ratings) - sum(rejection_counts.values())
-    return {'dataset_version': version, 'sha256': hashes, 'ratings_read': len(ratings),
-            'rejected_links': rejected_links, 'inserted': inserted, 'already_present': accepted - inserted,
-            'rejected_ratings': dict(rejection_counts),
-            'unresolved_movies': [{'movieId': movie_id, 'reason': reason} for movie_id, reason in rejected.items()]}

@@ -23,7 +23,7 @@ help:
 	@echo ""
 	@echo "Python jobs (Docker):"
 	@echo "  py-build         Build reco-job image"
-	@echo "  py-smoke         Inspect legacy MovieLens CSV files"
+	@echo "  py-smoke         Check PostgreSQL connectivity"
 	@echo "  py-sync-catalog  Load missing films from links.csv (DATA_DIR, CATALOG_LIMIT)"
 	@echo "  py-sync-movie    Create or refresh a film (TMDB_ID required)"
 	@echo "  py-stage         Load MovieLens staging (DATA_DIR, BATCH_SIZE)"

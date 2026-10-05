@@ -140,16 +140,13 @@ Une configuration vide utilise seulement les notes applicatives ; la commande
 
 ## Anciens outils
 
-Les raccourcis `py-import`, `py-enrich-tmdb`, `py-download`, `py-all` et `demo-data`
-ont été retirés du Makefile. Leurs scripts restent disponibles pour référence,
-mais ne font pas partie du parcours décrit ici :
+Le chargement des notes passe exclusivement par staging et publication ;
+les films sont chargés par `sync_tmdb_catalog` ou actualisés par `sync_tmdb_movie`.
 
-- `jobs.import_dataset` vide les tables et crée des comptes synthétiques.
-- `jobs.import_movielens` charge directement sans passer par staging ; il ne rend
-  pas une version utilisable par le moteur et refuse de modifier une version publiée.
-- `jobs.enrich_tmdb` utilise l'ancien parcours de métadonnées.
-- `jobs.download_dataset` cible latest-small ; il ne vérifie pas un téléchargement
-  partiel et ne peut pas écrire dans le montage de datasets en lecture seule.
+`jobs.download_dataset` reste un utilitaire historique ciblant latest-small :
+il ne vérifie pas un téléchargement partiel et ne peut pas écrire dans le montage
+de datasets en lecture seule. Il reste à adapter avant son utilisation avec Airflow.
+`jobs.smoke_data` vérifie uniquement la connexion PostgreSQL avec `SELECT 1`.
 
 `make reset` reste une commande explicite de suppression des volumes Docker.
 

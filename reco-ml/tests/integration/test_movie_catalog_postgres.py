@@ -67,60 +67,6 @@ def test_concurrent_upserts_return_same_internal_id():
     assert ids[0] == ids[1]
 
 
-def test_movielens_import_is_replayable_and_preserves_app_data(tmp_path):
-    from reco_ml.movielens_import import import_snapshot
-    from unittest.mock import Mock
-    import io
-    from urllib.error import HTTPError
-
-    (tmp_path / 'links.csv').write_text('movieId,imdbId,tmdbId\n8001,0133093,8001\n8002,,\n8003,,8003\n8004,,8004\n')
-    (tmp_path / 'ratings.csv').write_text('userId,movieId,rating,timestamp\n42,8001,4.5,1000000000\n42,8002,4,1000000000\n42,8003,3,1000000000\n42,8004,2,1000000000\n42,8999,5,1000000000\n')
-    client = Mock()
-    client.get_movie.side_effect = [payload(8003), HTTPError('test',404,'missing',{},io.BytesIO())]
-    with psycopg.connect(DSN) as conn:
-        item_id = upsert_tmdb_movie(conn, payload(8001))
-        before = conn.execute('SELECT (SELECT count(*) FROM users), (SELECT count(*) FROM ratings)').fetchone()
-        report = import_snapshot(conn, tmp_path, client)
-        assert report['inserted'] == 2
-        assert report['rejected_ratings'] == {'missing_tmdb_id': 1, 'tmdb_not_found': 1, 'missing_link': 1}
-        assert client.get_movie.call_count == 2
-        assert conn.execute('SELECT item_id FROM movielens_ratings WHERE dataset_version=%s AND item_id=%s', (report['dataset_version'],item_id)).fetchone()[0] == item_id
-        replay = import_snapshot(conn, tmp_path)
-        assert replay['inserted'] == 0
-        assert replay['already_present'] == 2
-        assert conn.execute('SELECT (SELECT count(*) FROM users), (SELECT count(*) FROM ratings)').fetchone() == before
-
-
-def test_movielens_temporary_api_failure_rolls_back_import(tmp_path):
-    from reco_ml.movielens_import import import_snapshot
-    from unittest.mock import Mock
-    (tmp_path / 'links.csv').write_text('movieId,imdbId,tmdbId\n9001,,9001\n9002,,9002\n')
-    (tmp_path / 'ratings.csv').write_text('userId,movieId,rating,timestamp\n42,9001,4,1\n42,9002,5,1\n')
-    client = Mock()
-    client.get_movie.side_effect = [payload(9001), TimeoutError()]
-    with pytest.raises(TimeoutError):
-        with psycopg.connect(DSN) as conn:
-            import_snapshot(conn, tmp_path, client)
-    with psycopg.connect(DSN) as conn:
-        assert conn.execute('SELECT count(*) FROM items WHERE tmdb_id=9001').fetchone()[0] == 0
-
-
-def test_import_skips_ambiguous_links_without_calling_tmdb_for_them(tmp_path):
-    from reco_ml.movielens_import import import_snapshot
-    from unittest.mock import Mock
-    (tmp_path / 'links.csv').write_text('movieId,imdbId,tmdbId\n9601,0000001,9600\n9602,0000002,9600\n9603,0133093,9603\n')
-    (tmp_path / 'ratings.csv').write_text('userId,movieId,rating,timestamp\n42,9601,4,1\n42,9602,5,1\n42,9603,4,1\n')
-    client = Mock()
-    client.get_movie.return_value = payload(9603)
-    with psycopg.connect(DSN) as conn:
-        report = import_snapshot(conn, tmp_path, client)
-        assert report['inserted'] == 1
-        assert report['rejected_ratings'] == {'ambiguous_link': 2}
-        assert set(report['rejected_links']) == {9601, 9602}
-        client.get_movie.assert_called_once_with(9603)
-        assert conn.execute('SELECT count(*) FROM items WHERE tmdb_id=9600').fetchone()[0] == 0
-
-
 def test_staging_is_separate_and_preserves_duplicates_for_validation():
     import uuid
     run_id = uuid.uuid4()
@@ -222,11 +168,10 @@ def test_publication_rejects_changed_links_and_conflicting_notes(tmp_path):
         assert conn.execute('SELECT count(*) FROM public.movielens_ratings WHERE dataset_version=%s',(staged['dataset_version'],)).fetchone()[0]==0
 
 
-def test_recommender_requires_publication_and_direct_import_cannot_modify_it(tmp_path):
+def test_recommender_requires_publication(tmp_path):
     from reco_ml.staging_import import stage_snapshot
     from reco_ml.staging_publish import publish_snapshot
     from reco_ml.rating_corpus import load_corpus
-    from reco_ml.movielens_import import import_snapshot
     (tmp_path/'links.csv').write_text('movieId,imdbId,tmdbId\n9900,,9900\n')
     (tmp_path/'ratings.csv').write_text('userId,movieId,rating,timestamp\n42,9900,4,1\n')
     with psycopg.connect(DSN) as conn:
@@ -240,8 +185,6 @@ def test_recommender_requires_publication_and_direct_import_cannot_modify_it(tmp
     with psycopg.connect(DSN) as conn:
         ratings,_,_=load_corpus(conn,staged['dataset_version'])
         assert any(user == -42 for user,_,_ in ratings)
-        with pytest.raises(ValueError,match='already published'):
-            import_snapshot(conn,tmp_path)
 
 
 def test_catalog_sync_resumes_after_outage_without_duplicate_movies():
